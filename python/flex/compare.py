@@ -1,6 +1,7 @@
-""" compare contains source and target comparing functions
+""" flex.compare
 
-*Module description*
+flex.compare module contains functions which allows you to compare content
+of maya transform nodes used as groups.
 
 :module: flex.compare
 """
