@@ -1,9 +1,9 @@
-""" flex.compare
+""" flex.query
 
-flex.compare module contains functions which allows you to compare content
+flex.query module contains functions which allows you to compare content
 of maya transform nodes used as groups.
 
-:module: flex.compare
+:module: flex.query
 """
 
 # imports

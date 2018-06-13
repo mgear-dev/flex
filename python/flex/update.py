@@ -7,7 +7,7 @@ flex.update module handles the updating rig process
 """
 
 # imports
-from .compare import get_updatable_shapes
+from flex.query import get_updatable_shapes
 
 
 def update_rig(source, target):
