@@ -48,3 +48,24 @@ def get_shapes_from_group(group):
                      exactType=('mesh'))
 
     return shapes or None
+
+
+def get_updatable_shapes(source, target):
+    """ Returns a list of shapes that can be updated on the target group
+    """
+
+    source_shapes = get_shapes_from_group(source)
+    target_shapes = get_shapes_from_group(target)
+
+    result = []
+
+    for shape in source_shapes:
+
+        prefix = get_prefix_from_group(source)
+        target_name = shape.replace(prefix, '')
+
+        if target_name not in target_shapes:
+            continue
+        result.append(shape)
+
+    return result
