@@ -10,28 +10,35 @@ of maya transform nodes used as groups.
 from maya import cmds
 
 
-def get_prefix_from_group(group):
+def get_prefix_from_elem(elem):
     """ Returns a string with the prefix found on the given group
 
-    :param group: maya transform node
-    :type group: string
+    :param elem: maya transform node
+    :type elem: string
 
     :return: the group prefix
     :rtype: str
     """
 
-    if not group.count(':'):
-        return None
+    end_name = None
 
-    end_name = group.split(':')[-1]
-    return group.replace(end_name, '')
+    # namespace case prefix
+    if elem.count(':'):
+        end_name = elem.split(':')[-1]
+
+    # double name case prefix
+    if elem.count('|'):
+        end_name = elem.split('|')[-1]
+
+    if end_name:
+        return elem.replace(end_name, '')
 
 
-def get_shapes_from_group(group):
+def get_shapes_from_elem(elem):
     """ Gets all object shapes existing inside the given group
 
-    :param group: maya transform node
-    :type group: string
+    :param elem: maya transform node
+    :type elem: string
 
     :return: list of shapes objects
     :rtype: list str
@@ -40,32 +47,11 @@ def get_shapes_from_group(group):
     """
 
     # checks if exists inside maya scene
-    if not cmds.objExists(group):
-        return None
+    if not cmds.objExists(elem):
+        raise RuntimeError('Given element {} does not exists.'.format(elem))
 
     # gets shapes inside the given group
-    shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
+    shapes = cmds.ls(elem, dagObjects=True, noIntermediate=True,
                      exactType=('mesh'))
 
     return shapes or None
-
-
-def get_updatable_shapes(source, target):
-    """ Returns a list of shapes that can be updated on the target group
-    """
-
-    source_shapes = get_shapes_from_group(source)
-    target_shapes = get_shapes_from_group(target)
-
-    result = []
-
-    for shape in source_shapes:
-
-        prefix = get_prefix_from_group(source)
-        target_name = shape.replace(prefix, '')
-
-        if target_name not in target_shapes:
-            continue
-        result.append(shape)
-
-    return result
