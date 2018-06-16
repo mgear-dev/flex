@@ -7,10 +7,14 @@ flex.update module handles the updating rig process
 """
 
 # imports
-from flex.query import get_updatable_shapes
+from flex.query import get_prefix_from_elem, get_shapes_from_elem
 
 
-def update_rig(source, target):
+def update_shape(source_shape, target_shape):
+    print source_shape, target_shape
+
+
+def update_rig(source, target, constant_prefix):
     """ Updates all shapes from the given source group to the target group
 
     :param source: maya transform node
