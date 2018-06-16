@@ -7,6 +7,7 @@ flex.update module handles the updating rig process
 """
 
 # imports
+from maya import cmds
 from flex.query import get_prefix_from_elem, get_shapes_from_elem
 
 
