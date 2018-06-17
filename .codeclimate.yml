@@ -1,0 +1,8 @@
+plugins:
+  radon: 
+    enabled: true
+    config: 
+      python_version: 2
+      threshold: "B"
+  pep8:
+    enabled: true
