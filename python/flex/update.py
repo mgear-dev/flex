@@ -11,6 +11,7 @@ from flex.query import get_prefix_from_elem, get_shapes_from_elem
 
 
 def update_shape(source_shape, target_shape):
+    print 'source: {} / target: {}'.format(source_shape, target_shape)
     return source_shape, target_shape
 
 
@@ -32,8 +33,13 @@ def update_rig(source, target, constant_prefix):
     target_shapes = get_shapes_from_elem(target)
 
     # gets prefix from source
-    prefix = get_prefix_from_elem(source)
+    source_prefix = get_prefix_from_elem(source)
+    target_prefix = get_prefix_from_elem(target)
 
+    print source_prefix
+    print target_prefix
+
+    '''
     for shape in source_shapes:
         target_name = shape
 
@@ -46,3 +52,4 @@ def update_rig(source, target, constant_prefix):
             continue
 
         update_shape(shape, target_name)
+    '''
