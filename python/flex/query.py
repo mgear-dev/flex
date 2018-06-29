@@ -8,7 +8,28 @@ of maya transform nodes used as groups.
 
 # imports
 from maya import cmds
-from flex.decorators import timer  # @UnusedImport
+from .decorators import timer  # @UnusedImport
+
+def is_valid_group(group):
+    """ Checks if group is valid
+
+    Simply checks if the given group exists in the current Maya session and if
+    it is a valid transform group.
+
+    :param group: a maya transform node
+    :type group: str
+
+    :return: If the group is valid
+    :rtype: bool
+    """
+
+    if not cmds.objExists(group):
+        return False
+
+    if cmds.objectType(group) != 'transform':
+        return False
+
+    return True
 
 
 @timer
@@ -44,7 +65,7 @@ def get_matching_shapes(source_shapes, target_shapes):
                  if s in target_shapes])
 
 
-@timer
+# @timer
 def get_missing_shapes(source_shapes, target_shapes):
     """ Returns the missing shapes
 
@@ -67,6 +88,7 @@ def get_missing_shapes(source_shapes, target_shapes):
                  if s not in target_shapes])
 
 
+# @timer
 def get_prefix_less_dict(elements):
     """ Returns a dict containing each element with a stripped prefix
 
@@ -90,11 +112,12 @@ def get_prefix_less_dict(elements):
     return dict([(n.split("|")[-1].split(":")[-1], n) for n in elements])
 
 
+# @timer
 def get_shapes_from_group(group):
     """ Gets all object shapes existing inside the given group
 
     :param group: maya transform node
-    :type group: string
+    :type group: str
 
     :return: list of shapes objects
     :rtype: list str
@@ -104,10 +127,58 @@ def get_shapes_from_group(group):
 
     # checks if exists inside maya scene
     if not cmds.objExists(group):
-        raise RuntimeError('Given element {} does not exists.'.format(group))
+        raise RuntimeError("Given element {} does not exists.".format(group))
 
     # gets shapes inside the given group
     shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
-                     exactType=('mesh'))
+                     exactType=("mesh"))
 
     return shapes or None
+
+
+# @timer
+def get_shape_orig(shape):
+    """ Finds the orig (intermediate shape) on the given shape
+
+    :param shape: maya shape node
+    :type shape: str
+
+    :return: the found orig shape
+    :rtype: str
+
+    .. note:: There are several ways of searching for the orig shape in Maya.
+              Here we query it by first getting the given shape history on the
+              component type attribute (inMesh, create..) then filtering on
+              the result the same shape type. There might be more optimised
+              and stable ways of doing this.
+    """
+
+    orig_shapes = []
+    {orig_shapes.append(n) for n in (cmds.ls(cmds.listHistory(
+                                     shape + ".inMesh"),
+                                     type="mesh")) if n not in shape}
+
+    if len(orig_shapes) == 0:
+        orig_shapes = None
+
+    return orig_shapes
+
+
+# @timer
+def get_transform_selection():
+    """ Gets the current dag object selection
+
+    Returns the first selected dag object on a current selection that is a
+    transform node
+
+    :return: the first element of the current maya selection
+    :rtype: str
+    """
+
+    selection = cmds.ls(selection=True, dagObjects=True, type='transform',
+                        flatten=True, allPaths=True)
+
+    if len(selection) > 1:
+        selection = selection[0]
+
+    return selection or None
