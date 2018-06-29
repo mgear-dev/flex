@@ -18,6 +18,33 @@ logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
 
 
+def add_shape_attribute(element, attribute_name, attribute_type):
+    """ Adds the given attribute to the given object
+
+    :param element: the maya node
+    :type element: str
+
+    :param attribute_name: the attribute name to add in the given element
+    :type attribute_name: str
+
+    :param attribute_type: the attribute type
+    :type attribute_type: str
+    """
+
+    # check if attribute already exists
+    if not cmds.objExists("{}.{}".format(element, attribute_name)):
+        return
+
+    # handles attribute type attributes
+    try:
+        cmds.addAttr(element, longName=attribute_name,
+                     attributeType=attribute_type)
+
+    # handles data type attributes
+    except RuntimeError:
+        cmds.addAttr(element, longName=attribute_name, dataType=attribute_type)
+
+
 @timer
 def update_rig(source, target):
     """ Updates all shapes from the given source group to the target group
@@ -51,7 +78,7 @@ def update_rig(source, target):
     for shape in matching_shapes:
         logger.info("Updating: {}".format(shape))
         update_shape(shape, matching_shapes[shape])
-        update_shape_user_attributes(shape, matching_shapes[shape])
+        update_user_attributes(shape, matching_shapes[shape])
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
@@ -86,7 +113,7 @@ def update_shape(source_shape, target_shape):
                         "{}.inMesh".format(deform_origin))
 
 
-def update_shape_user_attributes(source_shape, target_shape):
+def update_user_attributes(source_shape, target_shape):
     """ Updates the target shape attributes with the given source shape content
 
     :param source_shape: maya shape node
@@ -103,17 +130,8 @@ def update_shape_user_attributes(source_shape, target_shape):
         attr_type = cmds.getAttr(source_shape + "." + attr, type=True)
         attr_value = cmds.getAttr(source_shape + "." + attr)
 
-        # checks if attribute exists on target shape
-        if not cmds.objExists(target_shape + '.' + attr):
-            # handles attribute type attributes
-            try:
-                cmds.addAttr(target_shape, longName=attr,
-                             attributeType=attr_type)
-
-            # handles data type attributes
-            except RuntimeError:
-                cmds.addAttr(target_shape, longName=attr,
-                             dataType=attr_type)
+        # adds attribute on shape
+        add_shape_attribute(target_shape, attr, attr_type)
 
         # updates the attribute values
         try:
