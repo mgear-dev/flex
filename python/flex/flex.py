@@ -52,6 +52,18 @@ class Flex(object):
         else:
             self.ui.target_text.setText("{}".format(selection))
 
+    def __property_check(self, value):
+        """ Flex properties check
+
+        :param value: value to check
+        :type value: type
+        """
+
+        if not is_valid_group(value):
+            raise ValueError("The given group ({}) is not a valid Maya "
+                             "transform node or it simply doesn't exist on "
+                             " your current Maya session".format(value))
+
     def __repr__(self):
         return "{}".format(self.__class__)
 
@@ -124,13 +136,13 @@ class Flex(object):
         :type value: str
         """
 
-        if not is_valid_group(value):
-            raise ValueError("The given source group ({}) is not a valid Maya "
-                             "transform node or it simply doesn't exist on "
-                             " your current Maya session".format(value))
+        # property check
+        self.__property_check(value)
 
+        # set value
         self.__source_group = value
 
+        # ui update
         if self.ui.isVisible():
             self.ui.source_text.setText(self.__source_group)
 
@@ -151,13 +163,13 @@ class Flex(object):
         :type value: str
         """
 
-        if not is_valid_group(value):
-            raise ValueError("The given target group ({}) is not a valid Maya "
-                             "transform node or it simply doesn't exist on "
-                             " your current Maya session".format(value))
+        # property check
+        self.__property_check(value)
 
+        # set value
         self.__target_group = value
 
+        # ui update
         if self.ui.isVisible():
             self.ui.target_text.setText(self.__source_group)
 
