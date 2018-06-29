@@ -59,10 +59,14 @@ class Flex(object):
         :type value: type
         """
 
-        if not is_valid_group(value):
+        if value and not is_valid_group(value):
             raise ValueError("The given group ({}) is not a valid Maya "
                              "transform node or it simply doesn't exist on "
                              " your current Maya session".format(value))
+
+        if self.source_group == self.target_group:
+            raise ValueError("The given source and target objects are the same"
+                             ". Nothing to update!")
 
     def __repr__(self):
         return "{}".format(self.__class__)
@@ -107,9 +111,14 @@ class Flex(object):
         message = ("You need to provided a source and target group in order to"
                    " run the rig update.")
 
+        # check if values have been set
         if not self.source_group or not self.target_group:
             raise ValueError(message)
 
+        # check if values are correct
+        self.__property_check(None)
+
+        # triggers the update
         update_rig(self.source_group, self.target_group)
 
     def show_ui(self):
