@@ -32,7 +32,7 @@ def add_shape_attribute(element, attribute_name, attribute_type):
     """
 
     # check if attribute already exists
-    if not cmds.objExists("{}.{}".format(element, attribute_name)):
+    if cmds.objExists("{}.{}".format(element, attribute_name)):
         return
 
     # handles attribute type attributes
@@ -43,6 +43,35 @@ def add_shape_attribute(element, attribute_name, attribute_type):
     # handles data type attributes
     except RuntimeError:
         cmds.addAttr(element, longName=attribute_name, dataType=attribute_type)
+
+
+def update_attribute(element, attribute_name, attribute_type, attribute_value):
+    """ Updates the given attribute to the given value
+
+    .. todo:: Support all types of Maya attributes
+    """
+
+    try:
+        cmds.setAttr("{}.{}".format(element, attribute_name), attribute_value)
+        return
+    except RuntimeError:
+        pass
+
+    try:
+        cmds.setAttr("{}.{}".format(element, attribute_name), attribute_value,
+                     type=attribute_type)
+        return
+    except RuntimeError:
+        pass
+
+    try:
+        cmds.setAttr("{}.{}".format(element, attribute_name),
+                     len(attribute_value),
+                     *((x, y, z) for x, y, z in attribute_value),
+                     type=attribute_type)
+        return
+    except RuntimeError:
+        pass
 
 
 @timer
@@ -134,19 +163,4 @@ def update_user_attributes(source_shape, target_shape):
         add_shape_attribute(target_shape, attr, attr_type)
 
         # updates the attribute values
-        try:
-            # handles most general attribute cases
-            cmds.setAttr(source_shape + "." + attr, attr_value)
-
-        except RuntimeError:
-            # handles array type attributes
-            # .. todo:: Support all types of Maya attributes
-            if 'Array' in attr_type:
-                cmds.setAttr(target_shape + "." + attr, len(attr_value),
-                             *((x, y, z) for x, y, z in attr_value),
-                             type=attr_type)
-
-            # handles extra attribute types
-            else:
-                cmds.setAttr(target_shape + "." + attr, attr_value,
-                             type=attr_type)
+        update_attribute(target_shape, attr, attr_type, attr_value)
