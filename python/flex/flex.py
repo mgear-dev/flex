@@ -180,7 +180,7 @@ class Flex(object):
 
         # ui update
         if self.ui.isVisible():
-            self.ui.target_text.setText(self.__source_group)
+            self.ui.target_text.setText(self.__target_group)
 
 
 def run():
