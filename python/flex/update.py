@@ -48,6 +48,18 @@ def add_shape_attribute(element, attribute_name, attribute_type):
 def update_attribute(element, attribute_name, attribute_type, attribute_value):
     """ Updates the given attribute to the given value
 
+    :param element: the maya node
+    :type element: str
+
+    :param attribute_name: the attribute name to add in the given element
+    :type attribute_name: str
+
+    :param attribute_type: the attribute type
+    :type attribute_type: str
+
+    :param attribute_value: value to set on the attribute
+    :type attribute: maya attributes types
+
     .. todo:: Support all types of Maya attributes
     """
 
