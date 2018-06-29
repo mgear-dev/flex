@@ -7,7 +7,7 @@ Contains the Flex user interface
 """
 
 # imports
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtGui
 
 
 class FlexDialog(QtWidgets.QDialog):
@@ -37,20 +37,28 @@ class FlexDialog(QtWidgets.QDialog):
         self.grid_layout.setContentsMargins(5, 5, 5, 5)
         self.setLayout(self.grid_layout)
 
+        # colors
+        blue = QtGui.QColor(35, 140, 160)
+        yellow = QtGui.QColor(250, 200, 120)
+        red = QtGui.QColor(250, 110, 90)
+
         # source widgets
         self.source_text = QtWidgets.QLineEdit()
         self.source_text.setPlaceholderText("source group")
         self.add_source_button = QtWidgets.QPushButton("<--  source")
         self.add_source_button.setObjectName("source_qpushbutton")
+        self.add_source_button.setPalette(yellow)
 
         # target widgets
         self.target_text = QtWidgets.QLineEdit()
         self.target_text.setPlaceholderText("target group")
         self.add_target_button = QtWidgets.QPushButton("<--  target")
         self.add_target_button.setObjectName("target_qpushbutton")
+        self.add_target_button.setPalette(blue)
 
         # run widget
         self.run_button = QtWidgets.QPushButton('--> Update shapes <--')
+        self.run_button.setPalette(red)
 
         # adds widgets to layout
         self.grid_layout.addWidget(self.source_text, 0, 0, 1, 2)
