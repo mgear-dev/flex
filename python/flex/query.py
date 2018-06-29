@@ -10,6 +10,17 @@ of maya transform nodes used as groups.
 from maya import cmds
 from .decorators import timer  # @UnusedImport
 
+
+def is_maya_batch():
+    """ Returns if the current session is a Maya batch session or not
+
+    :return: if Maya is on batch mode or not
+    :rtype: bool
+    """
+
+    return cmds.about(batch=True)
+
+
 def is_valid_group(group):
     """ Checks if group is valid
 
