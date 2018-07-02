@@ -11,6 +11,8 @@ from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
+from .decorators import kill_flex_ui
+from .decorators import set_focus
 from .query import get_transform_selection
 from .query import is_maya_batch
 from .query import is_valid_group
@@ -64,7 +66,7 @@ class Flex(object):
                              "transform node or it simply doesn't exist on "
                              " your current Maya session".format(value))
 
-        if self.source_group == self.target_group:
+        if self.source_group == self.target_group and not value:
             raise ValueError("The given source and target objects are the same"
                              ". Nothing to update!")
 
@@ -129,19 +131,22 @@ class Flex(object):
         # triggers the update
         update_rig(self.source_group, self.target_group)
 
+    @kill_flex_ui
+    @set_focus
     def show_ui(self):
         """ Displays the user interface
         """
 
         if not is_maya_batch():
             self.ui.show()
+            self.__update_ui()
 
     @property
     def source_group(self):
         """ Flex source group name (property)
         """
 
-        if self.ui.isVisible():
+        if self.ui.isVisible() and self.ui.source_text.text():
             self.__source_group = self.ui.source_text.text()
         return self.__source_group
 
@@ -167,7 +172,7 @@ class Flex(object):
         """ Flex target group name (property)
         """
 
-        if self.ui.isVisible():
+        if self.ui.isVisible() and self.ui.target_text.text():
             self.__target_group = self.ui.target_text.text()
         return self.__target_group
 
