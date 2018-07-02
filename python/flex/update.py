@@ -101,6 +101,11 @@ def update_rig(source, target):
     source_shapes = get_shapes_from_group(source)
     target_shapes = get_shapes_from_group(target)
 
+    if not source_shapes or not target_shapes:
+        message = "No shape(s) found under the given groups"
+        logger.error(message)
+        raise ValueError(message)
+
     # gets prefix-less shapes
     sources_dict = get_prefix_less_dict(source_shapes)
     targets_dict = get_prefix_less_dict(target_shapes)
