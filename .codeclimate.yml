@@ -6,3 +6,9 @@ plugins:
       threshold: "B"
   pep8:
     enabled: true
+
+version: "2"         # required to adjust maintainability checks
+checks:
+  similar-code:
+    config:
+      threshold: "B"
