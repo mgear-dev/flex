@@ -11,4 +11,4 @@ version: "2"
 checks:
   similar-code:
     config:
-      threshold: 20
+      threshold: 30
