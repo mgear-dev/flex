@@ -11,38 +11,6 @@ from maya import cmds
 from .decorators import timer  # @UnusedImport
 
 
-def is_maya_batch():
-    """ Returns if the current session is a Maya batch session or not
-
-    :return: if Maya is on batch mode or not
-    :rtype: bool
-    """
-
-    return cmds.about(batch=True)
-
-
-def is_valid_group(group):
-    """ Checks if group is valid
-
-    Simply checks if the given group exists in the current Maya session and if
-    it is a valid transform group.
-
-    :param group: a maya transform node
-    :type group: str
-
-    :return: If the group is valid
-    :rtype: bool
-    """
-
-    if not cmds.objExists(group):
-        return False
-
-    if cmds.objectType(group) != 'transform':
-        return False
-
-    return True
-
-
 @timer
 def get_matching_shapes(source_shapes, target_shapes):
     """ Returns the matching shapes
@@ -124,30 +92,6 @@ def get_prefix_less_dict(elements):
 
 
 # @timer
-def get_shapes_from_group(group):
-    """ Gets all object shapes existing inside the given group
-
-    :param group: maya transform node
-    :type group: str
-
-    :return: list of shapes objects
-    :rtype: list str
-
-    .. important:: only mesh shapes are returned for now
-    """
-
-    # checks if exists inside maya scene
-    if not cmds.objExists(group):
-        raise RuntimeError("Given element {} does not exists.".format(group))
-
-    # gets shapes inside the given group
-    shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
-                     exactType=("mesh"))
-
-    return shapes or None
-
-
-# @timer
 def get_shape_orig(shape):
     """ Finds the orig (intermediate shape) on the given shape
 
@@ -176,6 +120,30 @@ def get_shape_orig(shape):
 
 
 # @timer
+def get_shapes_from_group(group):
+    """ Gets all object shapes existing inside the given group
+
+    :param group: maya transform node
+    :type group: str
+
+    :return: list of shapes objects
+    :rtype: list str
+
+    .. important:: only mesh shapes are returned for now
+    """
+
+    # checks if exists inside maya scene
+    if not cmds.objExists(group):
+        raise RuntimeError("Given element {} does not exists.".format(group))
+
+    # gets shapes inside the given group
+    shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
+                     exactType=("mesh"))
+
+    return shapes or None
+
+
+# @timer
 def get_transform_selection():
     """ Gets the current dag object selection
 
@@ -193,3 +161,35 @@ def get_transform_selection():
         selection = selection[0]
 
     return selection or None
+
+
+def is_maya_batch():
+    """ Returns if the current session is a Maya batch session or not
+
+    :return: if Maya is on batch mode or not
+    :rtype: bool
+    """
+
+    return cmds.about(batch=True)
+
+
+def is_valid_group(group):
+    """ Checks if group is valid
+
+    Simply checks if the given group exists in the current Maya session and if
+    it is a valid transform group.
+
+    :param group: a maya transform node
+    :type group: str
+
+    :return: If the group is valid
+    :rtype: bool
+    """
+
+    if not cmds.objExists(group):
+        return False
+
+    if cmds.objectType(group) != 'transform':
+        return False
+
+    return True
