@@ -89,6 +89,14 @@ class Flex(object):
     def __str__(self):
         return "mGear: Flex == > An awesome rig update tool"
 
+    def __update_ui(self):
+        """ Updates the ui content
+        """
+
+        if self.ui.isVisible():
+            self.ui.source_text.setText(self.__source_group)
+            self.ui.target_text.setText(self.__target_group)
+
     @staticmethod
     def __warp_maya_window():
         """ Returns a qt widget warp of the Maya window
@@ -152,8 +160,7 @@ class Flex(object):
         self.__source_group = value
 
         # ui update
-        if self.ui.isVisible():
-            self.ui.source_text.setText(self.__source_group)
+        self.__update_ui()
 
     @property
     def target_group(self):
@@ -179,8 +186,7 @@ class Flex(object):
         self.__target_group = value
 
         # ui update
-        if self.ui.isVisible():
-            self.ui.target_text.setText(self.__target_group)
+        self.__update_ui()
 
 
 def run():
