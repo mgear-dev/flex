@@ -8,8 +8,32 @@ decorators.
 """
 
 # imports
-import time
 from maya import cmds
+import time
+
+
+def finished_running(function):
+    """ Displays a end of process viewport message
+
+    :param function: your decorated function
+    :type function: function
+
+    :return: your decorated function
+    :rtype: function
+    """
+
+    def wrapper_function(*args, **kwars):
+        # runs decorated function
+        function_exec = function(*args, **kwars)
+
+        cmds.inViewMessage(message="Flex Finished running...", fade=True,
+                           position="midCenter", fontSize=30, fadeStayTime=500,
+                           fadeOutTime=100, dragKill=True, bkc=0x00154060,
+                           alpha=0.7)
+
+        return function_exec
+
+    return wrapper_function
 
 
 def kill_flex_ui(function):
