@@ -11,6 +11,7 @@ from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
+from .decorators import finished_running
 from .decorators import kill_flex_ui
 from .decorators import set_focus
 from .query import get_transform_selection
@@ -85,8 +86,12 @@ class Flex(object):
         self.ui.add_target_button.clicked.connect(
             lambda: self.__fill_line_edits(self.ui.add_target_button))
 
+        # analyse button
+        self.ui.analyse_button.clicked.connect(self.update_rig)
+
         # run button
-        self.ui.run_button.clicked.connect(self.update_rig)
+        self.ui.run_button.clicked.connect(
+            lambda: self.update_rig(analytic=False))
 
     def __str__(self):
         return "mGear: Flex == > An awesome rig update tool"
@@ -176,8 +181,12 @@ class Flex(object):
         # ui update
         self.__update_ui()
 
-    def update_rig(self):
+    @finished_running
+    def update_rig(self, analytic=True):
         """ Launches the rig update process
+
+        :param value: Update rig runs in analytic mode
+        :type value: bool
         """
 
         message = ("You need to provided a source and target group in order to"
@@ -191,4 +200,8 @@ class Flex(object):
         self.__property_check(None)
 
         # triggers the update
-        update_rig(self.source_group, self.target_group)
+        update_rig(source=self.source_group,
+                   target=self.target_group,
+                   dry_run=analytic,
+                   deformed=self.ui.deformed_check.isChecked(),
+                   user_attributes=self.ui.user_attributes_check.isChecked())
