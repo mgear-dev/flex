@@ -192,11 +192,3 @@ class Flex(object):
 
         # triggers the update
         update_rig(self.source_group, self.target_group)
-
-
-def run():
-    """ Simply method allowing you to quickly run Flex
-    """
-
-    flex = Flex()
-    flex.launch()
