@@ -86,7 +86,7 @@ class Flex(object):
             lambda: self.__fill_line_edits(self.ui.add_target_button))
 
         # run button
-        self.ui.run_button.clicked.connect(self.launch_rig_update)
+        self.ui.run_button.clicked.connect(self.update_rig)
 
     def __str__(self):
         return "mGear: Flex == > An awesome rig update tool"
@@ -114,26 +114,9 @@ class Flex(object):
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
         return wrapInstance(long(maya_window), QtWidgets.QDialog)
 
-    def launch_rig_update(self):
-        """ Launches the rig update process
-        """
-
-        message = ("You need to provided a source and target group in order to"
-                   " run the rig update.")
-
-        # check if values have been set
-        if not self.source_group or not self.target_group:
-            raise ValueError(message)
-
-        # check if values are correct
-        self.__property_check(None)
-
-        # triggers the update
-        update_rig(self.source_group, self.target_group)
-
     @kill_flex_ui
     @set_focus
-    def show_ui(self):
+    def launch(self):
         """ Displays the user interface
         """
 
@@ -193,10 +176,27 @@ class Flex(object):
         # ui update
         self.__update_ui()
 
+    def update_rig(self):
+        """ Launches the rig update process
+        """
+
+        message = ("You need to provided a source and target group in order to"
+                   " run the rig update.")
+
+        # check if values have been set
+        if not self.source_group or not self.target_group:
+            raise ValueError(message)
+
+        # check if values are correct
+        self.__property_check(None)
+
+        # triggers the update
+        update_rig(self.source_group, self.target_group)
+
 
 def run():
     """ Simply method allowing you to quickly run Flex
     """
 
     flex = Flex()
-    flex.show_ui()
+    flex.launch()
