@@ -8,7 +8,9 @@ flex.update module handles the updating rig process
 
 # imports
 import logging
+from maya import OpenMaya
 from maya import cmds
+from maya import mel
 from .decorators import timer
 from .query import (get_matching_shapes, get_shapes_from_group,
                     get_prefix_less_dict, get_missing_shapes,
@@ -18,31 +20,41 @@ logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
 
 
-def add_shape_attribute(element, attribute_name, attribute_type):
+def add_attribute(source, target, attribute_name):
     """ Adds the given attribute to the given object
 
-    :param element: the maya node
-    :type element: str
+    :param source: the maya source node
+    :type source: str
+
+    :param target: the maya target node
+    :type target: str
 
     :param attribute_name: the attribute name to add in the given element
     :type attribute_name: str
-
-    :param attribute_type: the attribute type
-    :type attribute_type: str
     """
 
-    # check if attribute already exists
-    if cmds.objExists("{}.{}".format(element, attribute_name)):
+    # check if attribute already exists on target
+    if cmds.objExists("{}.{}".format(target, attribute_name)):
         return
 
-    # handles attribute type attributes
-    try:
-        cmds.addAttr(element, longName=attribute_name,
-                     attributeType=attribute_type)
+    # adds the elements into an maya selection list
+    m_selectin_list = OpenMaya.MSelectionList()
+    m_selectin_list.add(source)
 
-    # handles data type attributes
-    except RuntimeError:
-        cmds.addAttr(element, longName=attribute_name, dataType=attribute_type)
+    # gets the element MObject
+    m_object = OpenMaya.MObject()
+    m_selectin_list.getDependNode(0, m_object)
+
+    # gets the given attribute_name plug
+    m_depend_node = OpenMaya.MFnDependencyNode(m_object)
+    m_attribute = m_depend_node.findPlug(attribute_name).attribute()
+
+    # gets the addAttr command from the MFnAttribute function
+    fn_attr = OpenMaya.MFnAttribute(m_attribute)
+    add_attr_cmd = fn_attr.getAddAttrCmd()[1:-1]
+
+    # creates the attribute on the target
+    mel.eval("{} {}".format(add_attr_cmd, target))
 
 
 def update_attribute(element, attribute_name, attribute_type, attribute_value):
@@ -167,6 +179,8 @@ def update_user_attributes(source_shape, target_shape):
 
     :param target_shape: maya shape node
     :type target_shape: str
+
+    .. important:: Compound attributes types are not been handle yet.
     """
 
     # loop on user defined attributes if any
@@ -177,7 +191,11 @@ def update_user_attributes(source_shape, target_shape):
         attr_value = cmds.getAttr(source_shape + "." + attr)
 
         # adds attribute on shape
-        add_shape_attribute(target_shape, attr, attr_type)
+        add_attribute(source_shape, target_shape, attr)
+
+        # if there is no attr_value leave the attribute as it is
+        if not attr_value:
+            continue
 
         # updates the attribute values
         update_attribute(target_shape, attr, attr_type, attr_value)
