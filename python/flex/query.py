@@ -111,7 +111,7 @@ def get_shape_orig(shape):
     orig_shapes = []
     {orig_shapes.append(n) for n in (cmds.ls(cmds.listHistory(
                                      shape + ".inMesh"),
-                                     type="mesh")) if n not in shape}
+                                     type="mesh")) if n != shape}
 
     if len(orig_shapes) == 0:
         orig_shapes = None
