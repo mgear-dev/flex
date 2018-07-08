@@ -42,19 +42,6 @@ class Flex(object):
         # connect user interface signals
         self.__setup_ui_signals()
 
-    def __fill_line_edits(self, widget):
-
-        selection = get_transform_selection()
-        if not selection:
-            return
-
-        widget_name = widget.objectName()
-        if widget_name == 'source_qpushbutton':
-            self.ui.source_text.setText("{}".format(selection))
-
-        else:
-            self.ui.target_text.setText("{}".format(selection))
-
     def __property_check(self, value):
         """ Flex properties check
 
@@ -74,17 +61,69 @@ class Flex(object):
     def __repr__(self):
         return "{}".format(self.__class__)
 
+    def __set_button_edits(self, widget):
+        """ "Sets Flex source and target groups properties
+
+        When triggering the push buttons Flex properties gets updated.
+
+        :param widget: the widget been edited
+        :type widget: PySide2.QtWidgets
+        """
+
+        widget_name = widget.objectName().split("_")[0]
+        value = get_transform_selection()
+
+        if widget_name == "source":
+            self.source_group = value
+            self.ui.source_text.setText(value)
+        else:
+            self.target_group = value
+            self.ui.target_text.setText(value)
+
+    def __set_text_edits(self, widget):
+        """ Updates Flex source and target groups properties
+
+        When typing inside the text widget the properties gets updated.
+
+        :param widget: the widget been edited
+        :type widget: PySide2.QtWidgets
+        """
+
+        widget_name = widget.objectName().split("_")[0]
+
+        if widget_name == "source":
+            if not self.ui.source_text.text():
+                self.source_group = None
+                return
+            self.source_group = self.ui.source_text.text()
+            return
+
+        else:
+            if not self.ui.target_text.text():
+                self.target_group = None
+                return
+            self.target_group = self.ui.target_text.text()
+            return
+
     def __setup_ui_signals(self):
-        """ Setups how the UI interacts witht the API and the tool
+        """ Setups how the UI interacts with the API and the tool
+
+        Connects the widget signals to Flex methods
         """
 
         # source button
         self.ui.add_source_button.clicked.connect(
-            lambda: self.__fill_line_edits(self.ui.add_source_button))
-
+            lambda: self.__set_button_edits(self.ui.add_source_button))
         # target button
         self.ui.add_target_button.clicked.connect(
-            lambda: self.__fill_line_edits(self.ui.add_target_button))
+            lambda: self.__set_button_edits(self.ui.add_target_button))
+
+        # source text edit
+        self.ui.source_text.textEdited.connect(
+            lambda: self.__set_text_edits(self.ui.source_text))
+        # target text edit
+        self.ui.target_text.textEdited.connect(
+            lambda: self.__set_text_edits(self.ui.target_text))
 
         # analyse button
         self.ui.analyse_button.clicked.connect(self.update_rig)
@@ -134,8 +173,6 @@ class Flex(object):
         """ Flex source group name (property)
         """
 
-        if self.ui.isVisible() and self.ui.source_text.text():
-            self.__source_group = self.ui.source_text.text()
         return self.__source_group
 
     @source_group.setter
@@ -145,9 +182,6 @@ class Flex(object):
         :param value: Maya transform node name containing all the source shapes
         :type value: str
         """
-
-        # property check
-        self.__property_check(value)
 
         # set value
         self.__source_group = value
@@ -160,8 +194,6 @@ class Flex(object):
         """ Flex target group name (property)
         """
 
-        if self.ui.isVisible() and self.ui.target_text.text():
-            self.__target_group = self.ui.target_text.text()
         return self.__target_group
 
     @target_group.setter
@@ -171,9 +203,6 @@ class Flex(object):
         :param value: Maya transform node name containing all the target shapes
         :type value: str
         """
-
-        # property check
-        self.__property_check(value)
 
         # set value
         self.__target_group = value
@@ -199,9 +228,13 @@ class Flex(object):
         # check if values are correct
         self.__property_check(None)
 
+        # gather ui options
+        ui_options = {}
+
+        ui_options["deformed"] = self.ui.deformed_check.isChecked()
+        ui_options["user_attributes"] = (
+            self.ui.user_attributes_check.isChecked())
+
         # triggers the update
-        update_rig(source=self.source_group,
-                   target=self.target_group,
-                   dry_run=analytic,
-                   deformed=self.ui.deformed_check.isChecked(),
-                   user_attributes=self.ui.user_attributes_check.isChecked())
+        update_rig(source=self.source_group, target=self.target_group,
+                   options=ui_options, dry_run=analytic)
