@@ -7,7 +7,7 @@ Contains the Flex user interface
 """
 
 # imports
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide2 import QtWidgets, QtGui
 
 
 class FlexDialog(QtWidgets.QDialog):
@@ -32,7 +32,7 @@ class FlexDialog(QtWidgets.QDialog):
 
         # creates widgets
         self.layout_widgets()
-        self.models_widgets()
+        self.models_groups_widgets()
         self.options_widgets()
         self.run_widgets()
 
@@ -78,7 +78,7 @@ class FlexDialog(QtWidgets.QDialog):
         # adds widgets layout
         main_vertical_layout.addWidget(model_frame)
 
-    def models_widgets(self):
+    def models_groups_widgets(self):
         """ Creates the source and target widgets area
         """
 
@@ -96,6 +96,7 @@ class FlexDialog(QtWidgets.QDialog):
 
         # source widgets
         self.source_text = QtWidgets.QLineEdit()
+        self.source_text.setObjectName("source_qlineedit")
         self.source_text.setPlaceholderText("source group")
         self.add_source_button = QtWidgets.QPushButton("<--  source")
         self.add_source_button.setObjectName("source_qpushbutton")
@@ -103,6 +104,7 @@ class FlexDialog(QtWidgets.QDialog):
 
         # target widgets
         self.target_text = QtWidgets.QLineEdit()
+        self.target_text.setObjectName("target_qlineedit")
         self.target_text.setPlaceholderText("target group")
         self.add_target_button = QtWidgets.QPushButton("<--  target")
         self.add_target_button.setObjectName("target_qpushbutton")
@@ -169,6 +171,11 @@ class FlexDialog(QtWidgets.QDialog):
         self.plugin_attributes_check.setChecked(False)
         self.plugin_attributes_check.setEnabled(False)
 
+        # render attributes
+        self.render_attributes_check = QtWidgets.QCheckBox("Render Attributes")
+        self.render_attributes_check.setChecked(False)
+        self.render_attributes_check.setEnabled(False)
+
         # vertex colours
         self.vertex_colours_check = QtWidgets.QCheckBox("Vertex Colours")
         self.vertex_colours_check.setChecked(True)
@@ -183,12 +190,19 @@ class FlexDialog(QtWidgets.QDialog):
         self.transformed_check.setChecked(False)
         self.transformed_check.setEnabled(False)
 
+        # display
+        self.display_check = QtWidgets.QCheckBox("Display Attributes")
+        self.display_check.setChecked(False)
+        self.display_check.setEnabled(False)
+
         # adds widgets to layout
         grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
         grid_layout.addWidget(self.plugin_attributes_check, 0, 1, 1, 1)
-        grid_layout.addWidget(self.vertex_colours_check, 0, 2, 1, 1)
+        grid_layout.addWidget(self.render_attributes_check, 0, 2, 1, 1)
         grid_layout.addWidget(self.deformed_check, 1, 0, 1, 1)
         grid_layout.addWidget(self.transformed_check, 1, 1, 1, 1)
+        grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
+        grid_layout.addWidget(self.display_check, 2, 0, 1, 1)
 
         # adds the group box widget to the widgets_layout
         self.widgets_layout.addWidget(group_box)

@@ -7,7 +7,9 @@ of maya transform nodes used as groups.
 """
 
 # imports
+from __builtin__ import isinstance
 from maya import cmds
+
 from .decorators import timer  # @UnusedImport
 
 
@@ -111,7 +113,7 @@ def get_shape_orig(shape):
     orig_shapes = []
     {orig_shapes.append(n) for n in (cmds.ls(cmds.listHistory(
                                      shape + ".inMesh"),
-                                     type="mesh")) if n not in shape}
+                                     type="mesh")) if n != shape}
 
     if len(orig_shapes) == 0:
         orig_shapes = None
@@ -140,7 +142,11 @@ def get_shapes_from_group(group):
     shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
                      exactType=("mesh"))
 
-    return shapes or None
+    if not shapes:
+        raise ValueError("No shape(s) found under the given group: '{}'"
+                         .format(group))
+
+    return shapes
 
 
 # @timer
@@ -160,7 +166,11 @@ def get_transform_selection():
     if len(selection) > 1:
         selection = selection[0]
 
-    return selection or None
+    if isinstance(selection, list):
+        return selection[0]
+
+    else:
+        return selection or None
 
 
 def is_maya_batch():
