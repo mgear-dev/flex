@@ -70,7 +70,7 @@ def update_attribute(element, attribute_name, attribute_type, attribute_value):
     :type attribute_type: str
 
     :param attribute_value: value to set on the attribute
-    :type attribute: maya attributes types
+    :type attribute_value: maya attributes types
 
     .. todo:: Support all types of Maya attributes
     """
@@ -99,21 +99,20 @@ def update_attribute(element, attribute_name, attribute_type, attribute_value):
 
 
 @timer
-def update_rig(source, target, dry_run=True, deformed=True,
-               user_attributes=True):
+def update_rig(source, target, options, dry_run=True):
     """ Updates all shapes from the given source group to the target group
 
     :param source: maya transform node
-    :type group: str
+    :type source: str
 
     :param target: maya transform node
-    :type group: str
+    :type target: str
 
-    :param deformed: deformed shapes update option
-    :type deformed: bool
+    :param options: update options
+    :type options: dict
 
-    :param user_attributes: user defined attributes update option
-    :type user_attributes: bool
+    :param dry_run: updating the rig in analytic mode
+    :type dry_run: bool
     """
 
     # gets all shapes on source and target
@@ -144,10 +143,10 @@ def update_rig(source, target, dry_run=True, deformed=True,
         for shape in matching_shapes:
             logger.info("Updating: {}".format(shape))
 
-            if deformed:
+            if options["deformed"]:
                 update_deformed_shape(shape, matching_shapes[shape])
 
-            if user_attributes:
+            if options["user_attributes"]:
                 update_user_attributes(shape, matching_shapes[shape])
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
