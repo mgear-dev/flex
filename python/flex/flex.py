@@ -237,4 +237,4 @@ class Flex(object):
 
         # triggers the update
         update_rig(source=self.source_group, target=self.target_group,
-                   options=ui_options, dry_run=analytic)
+                   options=ui_options, analytic=analytic)
