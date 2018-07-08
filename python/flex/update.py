@@ -99,7 +99,7 @@ def update_attribute(element, attribute_name, attribute_type, attribute_value):
 
 
 @timer
-def update_rig(source, target, options, dry_run=True):
+def update_rig(source, target, options, analytic=True):
     """ Updates all shapes from the given source group to the target group
 
     :param source: maya transform node
@@ -111,18 +111,13 @@ def update_rig(source, target, options, dry_run=True):
     :param options: update options
     :type options: dict
 
-    :param dry_run: updating the rig in analytic mode
-    :type dry_run: bool
+    :param analytic: updating the rig in analytic mode
+    :type analytic: bool
     """
 
     # gets all shapes on source and target
     source_shapes = get_shapes_from_group(source)
     target_shapes = get_shapes_from_group(target)
-
-    if not source_shapes or not target_shapes:
-        message = "No shape(s) found under the given groups"
-        logger.error(message)
-        raise ValueError(message)
 
     # gets prefix-less shapes
     sources_dict = get_prefix_less_dict(source_shapes)
@@ -139,7 +134,7 @@ def update_rig(source, target, options, dry_run=True):
 
     logger.info("Matching shapes: {}" .format(matching_shapes))
 
-    if not dry_run:
+    if not analytic:
         for shape in matching_shapes:
             logger.info("Updating: {}".format(shape))
 
