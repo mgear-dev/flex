@@ -32,7 +32,7 @@ class FlexDialog(QtWidgets.QDialog):
 
         # creates widgets
         self.layout_widgets()
-        self.models_widgets()
+        self.models_groups_widgets()
         self.options_widgets()
         self.run_widgets()
 
@@ -78,7 +78,7 @@ class FlexDialog(QtWidgets.QDialog):
         # adds widgets layout
         main_vertical_layout.addWidget(model_frame)
 
-    def models_widgets(self):
+    def models_groups_widgets(self):
         """ Creates the source and target widgets area
         """
 
