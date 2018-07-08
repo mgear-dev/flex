@@ -214,8 +214,8 @@ class Flex(object):
     def update_rig(self, analytic=True):
         """ Launches the rig update process
 
-        :param value: Update rig runs in analytic mode
-        :type value: bool
+        :param analytic: Update rig runs in analytic mode
+        :type analytic: bool
         """
 
         message = ("You need to provided a source and target group in order to"
