@@ -15,8 +15,7 @@ OBJECT_DISPLAY_ATTRIBUTES = ["visibility",
                              "lodVisibility",
                              "displayHWEnvironment",
                              "ignoreHwShader",
-                             "hideOnPlayback",
-                             "intermediateObject"]
+                             "hideOnPlayback"]
 
 RENDER_STATS_ATTRIBUTES = ["castsShadows",
                            "receiveShadows",
