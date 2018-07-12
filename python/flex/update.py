@@ -12,6 +12,7 @@ from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
+from .attributes import OBJECT_DISPLAY_ATTRIBUTES
 from .decorators import timer
 from .query import (get_matching_shapes, get_shapes_from_group,
                     get_prefix_less_dict, get_missing_shapes,
@@ -121,6 +122,21 @@ def update_deformed_shape(source_shape, target_shape):
                         "{}.inMesh".format(deform_origin))
 
 
+def update_display_attributes(source_shape, target_shape):
+    """ Updates all display attributes from the given source to the target
+
+    :param source_shape: maya shape node
+    :type source_shape: str
+
+    :param target_shape: maya shape node
+    :type target_shape: str
+    """
+
+    for attribute in OBJECT_DISPLAY_ATTRIBUTES:
+        attribute_value = cmds.getAttr("{}.{}".format(source_shape, attribute))
+        cmds.setAttr("{}.{}".format(target_shape, attribute), attribute_value)
+
+
 @timer
 def update_rig(source, target, options, analytic=True):
     """ Updates all shapes from the given source group to the target group
@@ -166,6 +182,9 @@ def update_rig(source, target, options, analytic=True):
 
             if options["user_attributes"]:
                 update_user_attributes(shape, matching_shapes[shape])
+
+            if options["display_attributes"]:
+                update_display_attributes(shape, matching_shapes[shape])
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
