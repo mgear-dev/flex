@@ -191,9 +191,9 @@ class FlexDialog(QtWidgets.QDialog):
         self.transformed_check.setEnabled(False)
 
         # display
-        self.display_check = QtWidgets.QCheckBox("Display Attributes")
-        self.display_check.setChecked(False)
-        self.display_check.setEnabled(False)
+        self.display_attributes_check = QtWidgets.QCheckBox(
+            "Display Attributes")
+        self.display_attributes_check.setChecked(False)
 
         # adds widgets to layout
         grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
@@ -202,7 +202,7 @@ class FlexDialog(QtWidgets.QDialog):
         grid_layout.addWidget(self.deformed_check, 1, 0, 1, 1)
         grid_layout.addWidget(self.transformed_check, 1, 1, 1, 1)
         grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
-        grid_layout.addWidget(self.display_check, 2, 0, 1, 1)
+        grid_layout.addWidget(self.display_attributes_check, 2, 0, 1, 1)
 
         # adds the group box widget to the widgets_layout
         self.widgets_layout.addWidget(group_box)
