@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: What the hack is going on?
+about: 'Flex: What the hack is going on?'
 
 ---
 
