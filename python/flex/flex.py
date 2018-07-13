@@ -238,6 +238,8 @@ class Flex(object):
             self.ui.display_attributes_check.isChecked())
         ui_options["component_display"] = (
             self.ui.component_attributes_check.isChecked())
+        ui_options["render_attributes"] = (
+            self.ui.render_attributes_check.isChecked())
 
         # triggers the update
         update_rig(source=self.source_group, target=self.target_group,
