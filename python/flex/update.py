@@ -12,6 +12,7 @@ from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
+from .attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from .attributes import OBJECT_DISPLAY_ATTRIBUTES
 from .decorators import timer
 from .query import (get_matching_shapes, get_shapes_from_group,
@@ -93,17 +94,17 @@ def update_attribute(source, target, attribute_name):
     mel.eval(set_attr_cmds)
 
 
-def update_deformed_shape(source_shape, target_shape):
+def update_deformed_shape(source, target):
     """ Updates the target shape with the given source shape content
 
-    :param source_shape: maya shape node
-    :type source_shape: str
+    :param source: maya shape node
+    :type source: str
 
-    :param target_shape: maya shape node
-    :type target_shape: str
+    :param target: maya shape node
+    :type target: str
     """
 
-    deform_origin = get_shape_orig(target_shape)
+    deform_origin = get_shape_orig(target)
 
     if not deform_origin:
         return
@@ -111,30 +112,29 @@ def update_deformed_shape(source_shape, target_shape):
     deform_origin = deform_origin[0]
 
     # updates the shape
-    cmds.connectAttr("{}.outMesh".format(source_shape),
+    cmds.connectAttr("{}.outMesh".format(source),
                      "{}.inMesh".format(deform_origin), force=True)
 
     # forces shape evaluation to achieve the update
-    cmds.dgeval("{}.outMesh".format(target_shape))
+    cmds.dgeval("{}.outMesh".format(target))
 
     # finish shape update
-    cmds.disconnectAttr("{}.outMesh".format(source_shape),
+    cmds.disconnectAttr("{}.outMesh".format(source),
                         "{}.inMesh".format(deform_origin))
 
 
-def update_display_attributes(source_shape, target_shape):
-    """ Updates all display attributes from the given source to the target
+def update_maya_attributes(source, target, attributes):
+    """ Updates all maya attributes from the given source to the target
 
-    :param source_shape: maya shape node
-    :type source_shape: str
+    :param source: maya shape node
+    :type source: str
 
-    :param target_shape: maya shape node
-    :type target_shape: str
+    :param target: maya shape node
+    :type target: str
     """
 
-    for attribute in OBJECT_DISPLAY_ATTRIBUTES:
-        attribute_value = cmds.getAttr("{}.{}".format(source_shape, attribute))
-        cmds.setAttr("{}.{}".format(target_shape, attribute), attribute_value)
+    for attribute in attributes:
+        update_attribute(source, target, attribute)
 
 
 @timer
@@ -183,21 +183,26 @@ def update_rig(source, target, options, analytic=True):
             if options["user_attributes"]:
                 update_user_attributes(shape, matching_shapes[shape])
 
-            if options["display_attributes"]:
-                update_display_attributes(shape, matching_shapes[shape])
+            if options["object_display"]:
+                update_maya_attributes(shape, matching_shapes[shape],
+                                       OBJECT_DISPLAY_ATTRIBUTES)
+
+            if options["component_display"]:
+                update_maya_attributes(shape, matching_shapes[shape],
+                                       COMPONENT_DISPLAY_ATTRIBUTES)
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
 
 
-def update_user_attributes(source_shape, target_shape):
+def update_user_attributes(source, target):
     """ Updates the target shape attributes with the given source shape content
 
-    :param source_shape: maya shape node
-    :type source_shape: str
+    :param source: maya shape node
+    :type source: str
 
-    :param target_shape: maya shape node
-    :type target_shape: str
+    :param target: maya shape node
+    :type target: str
 
     .. note:: This method loops twice on the use attributes. One time to add
               the missing attributes and the second to set their value. This
@@ -205,15 +210,15 @@ def update_user_attributes(source_shape, target_shape):
     """
 
     # get user defined attributes
-    user_attributes = cmds.listAttr(source_shape, userDefined=True) or []
+    user_attributes = cmds.listAttr(source, userDefined=True) or []
 
     # loop on user defined attributes if any to ---> addAttr
     for attr in user_attributes:
         # adds attribute on shape
-        add_attribute(source_shape, target_shape, attr)
+        add_attribute(source, target, attr)
 
     # loop on user defined attributes if any to ---> setAttr
     for attr in user_attributes:
 
         # updates the attribute values
-        update_attribute(source_shape, target_shape, attr)
+        update_attribute(source, target, attr)
