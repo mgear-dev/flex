@@ -234,8 +234,10 @@ class Flex(object):
         ui_options["deformed"] = self.ui.deformed_check.isChecked()
         ui_options["user_attributes"] = (
             self.ui.user_attributes_check.isChecked())
-        ui_options["display_attributes"] = (
+        ui_options["object_display"] = (
             self.ui.display_attributes_check.isChecked())
+        ui_options["component_display"] = (
+            self.ui.component_attributes_check.isChecked())
 
         # triggers the update
         update_rig(source=self.source_group, target=self.target_group,
