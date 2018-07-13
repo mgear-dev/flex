@@ -85,7 +85,7 @@ def update_attribute(source, target, attribute_name):
 
     # gets the setAttr command from the MPlug function
     command = []
-    attribute.getSetAttrCmds(command, attribute.kAllx, True)
+    attribute.getSetAttrCmds(command, attribute.kAll, True)
 
     # formats the command
     set_attr_cmds = command[0].replace(".{}".format(attribute_name),
