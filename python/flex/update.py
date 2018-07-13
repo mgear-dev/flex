@@ -11,9 +11,9 @@ import logging
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
-
 from .attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from .attributes import OBJECT_DISPLAY_ATTRIBUTES
+from .attributes import RENDER_STATS_ATTRIBUTES
 from .decorators import timer
 from .query import (get_matching_shapes, get_shapes_from_group,
                     get_prefix_less_dict, get_missing_shapes,
@@ -190,6 +190,10 @@ def update_rig(source, target, options, analytic=True):
             if options["component_display"]:
                 update_maya_attributes(shape, matching_shapes[shape],
                                        COMPONENT_DISPLAY_ATTRIBUTES)
+
+            if options["render_attributes"]:
+                update_maya_attributes(shape, matching_shapes[shape],
+                                       RENDER_STATS_ATTRIBUTES)
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
