@@ -169,7 +169,6 @@ class FlexDialog(QtWidgets.QDialog):
         self.plugin_attributes_check = QtWidgets.QCheckBox("Plug-in "
                                                            "Attributes")
         self.plugin_attributes_check.setChecked(False)
-        self.plugin_attributes_check.setEnabled(False)
 
         # render attributes
         self.render_attributes_check = QtWidgets.QCheckBox("Render Attributes")
