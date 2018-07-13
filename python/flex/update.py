@@ -87,6 +87,12 @@ def update_attribute(source, target, attribute_name):
     command = []
     attribute.getSetAttrCmds(command, attribute.kAll, True)
 
+    # returns if command wans't fount
+    if not command:
+        logger.error("The given attribute can't be set: {}".format(
+                     attribute_name))
+        return
+
     # formats the command
     set_attr_cmds = command[0].replace(".{}".format(attribute_name),
                                        "{}.{}".format(target, attribute_name))
