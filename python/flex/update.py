@@ -87,6 +87,12 @@ def update_attribute(source, target, attribute_name):
     command = []
     attribute.getSetAttrCmds(command, attribute.kAll, True)
 
+    # returns if command wans't fount
+    if not command:
+        logger.error("The given attribute can't be set: {}".format(
+                     attribute_name))
+        return
+
     # formats the command
     set_attr_cmds = command[0].replace(".{}".format(attribute_name),
                                        "{}.{}".format(target, attribute_name))
@@ -131,10 +137,31 @@ def update_maya_attributes(source, target, attributes):
 
     :param target: maya shape node
     :type target: str
+
+    :param attributes: list of Maya attributes to be updated
+    :type attributes: list
     """
 
     for attribute in attributes:
         update_attribute(source, target, attribute)
+
+
+def update_plugin_attributes(source, target):
+    """ Updates all maya plugin defined attributes
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+    """
+
+    source_attrs = cmds.listAttr(source, fromPlugin=True)
+    taget_attrs = cmds.listAttr(target, fromPlugin=True)
+
+    for attribute in source_attrs:
+        if attribute in taget_attrs:
+            update_attribute(source, target, attribute)
 
 
 @timer
@@ -194,6 +221,9 @@ def update_rig(source, target, options, analytic=True):
             if options["render_attributes"]:
                 update_maya_attributes(shape, matching_shapes[shape],
                                        RENDER_STATS_ATTRIBUTES)
+
+            if options["plugin_attributes"]:
+                update_plugin_attributes(shape, matching_shapes[shape])
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))

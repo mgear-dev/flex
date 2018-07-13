@@ -1,7 +1,6 @@
 ---
 name: Feature request
 about: 'Flex: Suggest an idea for this project'
-title: 'Flex:'
 ---
 
 **Feature description**
