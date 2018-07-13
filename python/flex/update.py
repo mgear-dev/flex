@@ -11,10 +11,13 @@ import logging
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
+
+from .attributes import COMPONENT_DISPLAY_ATTRIBUTES
+from .attributes import OBJECT_DISPLAY_ATTRIBUTES
 from .decorators import timer
 from .query import (get_matching_shapes, get_shapes_from_group,
                     get_prefix_less_dict, get_missing_shapes,
-                    get_shape_orig)
+                    get_shape_orig, get_dependency_node)
 
 logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
@@ -22,6 +25,12 @@ logger.setLevel(logging.DEBUG)
 
 def add_attribute(source, target, attribute_name):
     """ Adds the given attribute to the given object
+
+    .. note:: This is a generic method to **addAttr** all type of attributes
+              inside Maya. Using the getAddAttrCmd from the MFnAttribute class
+              allows avoiding to create one method for each type of attribute
+              inside Maya as the addAttr command will differ depending on the
+              attribute type and data.
 
     :param source: the maya source node
     :type source: str
@@ -37,16 +46,8 @@ def add_attribute(source, target, attribute_name):
     if cmds.objExists("{}.{}".format(target, attribute_name)):
         return
 
-    # adds the elements into an maya selection list
-    m_selectin_list = OpenMaya.MSelectionList()
-    m_selectin_list.add(source)
-
-    # gets the element MObject
-    m_object = OpenMaya.MObject()
-    m_selectin_list.getDependNode(0, m_object)
-
-    # gets the given attribute_name plug
-    m_depend_node = OpenMaya.MFnDependencyNode(m_object)
+    # gets the given attribute_name plug attribute
+    m_depend_node = get_dependency_node(source)
     m_attribute = m_depend_node.findPlug(attribute_name).attribute()
 
     # gets the addAttr command from the MFnAttribute function
@@ -57,45 +58,83 @@ def add_attribute(source, target, attribute_name):
     mel.eval("{} {}".format(add_attr_cmd, target))
 
 
-def update_attribute(element, attribute_name, attribute_type, attribute_value):
-    """ Updates the given attribute to the given value
+def update_attribute(source, target, attribute_name):
+    """ Updates the given attribute value
 
-    :param element: the maya node
-    :type element: str
+    ..note:: This in a generic method to **setAttr** all type of attributes
+             inside Maya. Using the getSetAttrCmds from the MPLug class allows
+             avoiding to create one method for each type of attribute inside
+             Maya as the setAttr command will differ depending on the
+             attribute type and data.
 
-    :param attribute_name: the attribute name to add in the given element
+    This method is faster than using PyMel attribute set property.
+
+    :param source: the maya source node
+    :type source: str
+
+    :param target: the maya target node
+    :type target: str
+
+    :param attribute_name: the attribute name to set in the given target
     :type attribute_name: str
-
-    :param attribute_type: the attribute type
-    :type attribute_type: str
-
-    :param attribute_value: value to set on the attribute
-    :type attribute_value: maya attributes types
-
-    .. todo:: Support all types of Maya attributes
     """
 
-    try:
-        cmds.setAttr("{}.{}".format(element, attribute_name), attribute_value)
-        return
-    except RuntimeError:
-        pass
+    # gets the given attribute_name plug
+    m_depend_node = get_dependency_node(source)
+    attribute = m_depend_node.findPlug(attribute_name)
 
-    try:
-        cmds.setAttr("{}.{}".format(element, attribute_name), attribute_value,
-                     type=attribute_type)
-        return
-    except RuntimeError:
-        pass
+    # gets the setAttr command from the MPlug function
+    command = []
+    attribute.getSetAttrCmds(command, attribute.kAllx, True)
 
-    try:
-        cmds.setAttr("{}.{}".format(element, attribute_name),
-                     len(attribute_value),
-                     *((x, y, z) for x, y, z in attribute_value),
-                     type=attribute_type)
+    # formats the command
+    set_attr_cmds = command[0].replace(".{}".format(attribute_name),
+                                       "{}.{}".format(target, attribute_name))
+    # sets the attribute value
+    mel.eval(set_attr_cmds)
+
+
+def update_deformed_shape(source, target):
+    """ Updates the target shape with the given source shape content
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+    """
+
+    deform_origin = get_shape_orig(target)
+
+    if not deform_origin:
         return
-    except RuntimeError:
-        pass
+
+    deform_origin = deform_origin[0]
+
+    # updates the shape
+    cmds.connectAttr("{}.outMesh".format(source),
+                     "{}.inMesh".format(deform_origin), force=True)
+
+    # forces shape evaluation to achieve the update
+    cmds.dgeval("{}.outMesh".format(target))
+
+    # finish shape update
+    cmds.disconnectAttr("{}.outMesh".format(source),
+                        "{}.inMesh".format(deform_origin))
+
+
+def update_maya_attributes(source, target, attributes):
+    """ Updates all maya attributes from the given source to the target
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+    """
+
+    for attribute in attributes:
+        update_attribute(source, target, attribute)
 
 
 @timer
@@ -144,64 +183,42 @@ def update_rig(source, target, options, analytic=True):
             if options["user_attributes"]:
                 update_user_attributes(shape, matching_shapes[shape])
 
+            if options["object_display"]:
+                update_maya_attributes(shape, matching_shapes[shape],
+                                       OBJECT_DISPLAY_ATTRIBUTES)
+
+            if options["component_display"]:
+                update_maya_attributes(shape, matching_shapes[shape],
+                                       COMPONENT_DISPLAY_ATTRIBUTES)
+
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
 
 
-def update_deformed_shape(source_shape, target_shape):
-    """ Updates the target shape with the given source shape content
-
-    :param source_shape: maya shape node
-    :type source_shape: str
-
-    :param target_shape: maya shape node
-    :type target_shape: str
-    """
-
-    deform_origin = get_shape_orig(target_shape)
-
-    if not deform_origin:
-        return
-
-    deform_origin = deform_origin[0]
-
-    # updates the shape
-    cmds.connectAttr("{}.outMesh".format(source_shape),
-                     "{}.inMesh".format(deform_origin), force=True)
-
-    # forces shape evaluation to achieve the update
-    cmds.dgeval("{}.outMesh".format(target_shape))
-
-    # finish shape update
-    cmds.disconnectAttr("{}.outMesh".format(source_shape),
-                        "{}.inMesh".format(deform_origin))
-
-
-def update_user_attributes(source_shape, target_shape):
+def update_user_attributes(source, target):
     """ Updates the target shape attributes with the given source shape content
 
-    :param source_shape: maya shape node
-    :type source_shape: str
+    :param source: maya shape node
+    :type source: str
 
-    :param target_shape: maya shape node
-    :type target_shape: str
+    :param target: maya shape node
+    :type target: str
 
-    .. important:: Compound attributes types are not been handle yet.
+    .. note:: This method loops twice on the use attributes. One time to add
+              the missing attributes and the second to set their value. This
+              allows avoiding issues when dealing with child attributes.
     """
 
-    # loop on user defined attributes if any
-    for attr in cmds.listAttr(source_shape, userDefined=True) or []:
+    # get user defined attributes
+    user_attributes = cmds.listAttr(source, userDefined=True) or []
 
-        # get attribute type and value
-        attr_type = cmds.getAttr(source_shape + "." + attr, type=True)
-        attr_value = cmds.getAttr(source_shape + "." + attr)
-
+    # loop on user defined attributes if any to ---> addAttr
+    for attr in user_attributes:
         # adds attribute on shape
-        add_attribute(source_shape, target_shape, attr)
+        add_attribute(source, target, attr)
 
-        # if there is no attr_value leave the attribute as it is
-        if not attr_value:
-            continue
+    # loop on user defined attributes if any to ---> setAttr
+    for attr in user_attributes:
 
         # updates the attribute values
-        update_attribute(target_shape, attr, attr_type, attr_value)
+        update_attribute(source, target, attr)

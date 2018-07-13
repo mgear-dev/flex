@@ -6,17 +6,16 @@ A simple module listing all attributes classifications inside Maya
 :module: flex.attributes
 """
 
-DISPLAY_ATTRIBUTES = ["displayColors",
-                      "displayColorChannel",
-                      "materialBlend"]
+COMPONENT_DISPLAY_ATTRIBUTES = ["displayColors",
+                                "displayColorChannel",
+                                "materialBlend"]
 
 OBJECT_DISPLAY_ATTRIBUTES = ["visibility",
                              "template",
                              "lodVisibility",
                              "displayHWEnvironment",
                              "ignoreHwShader",
-                             "hideOnPlayback",
-                             "intermediateObject"]
+                             "hideOnPlayback"]
 
 RENDER_STATS_ATTRIBUTES = ["castsShadows",
                            "receiveShadows",

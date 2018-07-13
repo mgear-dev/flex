@@ -8,9 +8,29 @@ of maya transform nodes used as groups.
 
 # imports
 from __builtin__ import isinstance
+from maya import OpenMaya
 from maya import cmds
-
 from .decorators import timer  # @UnusedImport
+
+
+def get_dependency_node(element):
+    """ Returns a Maya MFnDependencyNode from the given element
+
+    :param element: Maya node to return a dependency node class object
+    :type element: string
+    """
+
+    # adds the elements into an maya selection list
+    m_selectin_list = OpenMaya.MSelectionList()
+    m_selectin_list.add(element)
+
+    # creates an MObject
+    m_object = OpenMaya.MObject()
+
+    # gets the MObject from the list
+    m_selectin_list.getDependNode(0, m_object)
+
+    return OpenMaya.MFnDependencyNode(m_object)
 
 
 @timer
