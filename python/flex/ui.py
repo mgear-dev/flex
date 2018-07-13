@@ -173,8 +173,7 @@ class FlexDialog(QtWidgets.QDialog):
 
         # render attributes
         self.render_attributes_check = QtWidgets.QCheckBox("Render Attributes")
-        self.render_attributes_check.setChecked(False)
-        self.render_attributes_check.setEnabled(False)
+        self.render_attributes_check.setChecked(True)
 
         # vertex colours
         self.vertex_colours_check = QtWidgets.QCheckBox("Vertex Colours")
