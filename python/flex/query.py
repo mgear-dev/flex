@@ -6,11 +6,13 @@ of maya transform nodes used as groups.
 :module: flex.query
 """
 
-# imports
+# import
+from __future__ import absolute_import
 from __builtin__ import isinstance
 from maya import OpenMaya
 from maya import cmds
-from .decorators import timer  # @UnusedImport
+
+from flex.decorators import timer  # @UnusedImport
 
 
 def get_dependency_node(element):

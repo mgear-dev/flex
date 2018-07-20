@@ -7,23 +7,24 @@ flex.update module handles the updating rig process
 """
 
 # imports
+from __future__ import absolute_import
 import logging
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
-from .attributes import COMPONENT_DISPLAY_ATTRIBUTES
-from .attributes import OBJECT_DISPLAY_ATTRIBUTES
-from .attributes import RENDER_STATS_ATTRIBUTES
-from .decorators import timer
-from .query import (get_matching_shapes,
-                    get_shapes_from_group,
-                    get_prefix_less_dict,
-                    get_missing_shapes,
-                    get_shape_orig,
-                    get_dependency_node,
-                    is_lock_attribute,
-                    lock_unlock_attribute)
+from flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
+from flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
+from flex.attributes import RENDER_STATS_ATTRIBUTES
+from flex.decorators import timer
+from flex.query import get_dependency_node
+from flex.query import get_matching_shapes
+from flex.query import get_missing_shapes
+from flex.query import get_prefix_less_dict
+from flex.query import get_shape_orig
+from flex.query import get_shapes_from_group
+from flex.query import is_lock_attribute
+from flex.query import lock_unlock_attribute
 
 logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
