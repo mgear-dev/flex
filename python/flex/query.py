@@ -186,11 +186,28 @@ def get_transform_selection():
     if len(selection) > 1:
         selection = selection[0]
 
+    # checks if the selection is a list type variable
     if isinstance(selection, list):
         return selection[0]
 
     else:
         return selection or None
+
+
+def is_lock_attribute(element, attribute):
+    """ Returns if the given attribute on the element is locked
+
+    :param element: Maya node name
+    :type element: string
+
+    :param attribute: Maya attribute name. Must exist
+    :type attribute: string
+
+    :return: if attribute is locked
+    :rtype: bool
+    """
+
+    return cmds.getAttr("{}.{}".format(element, attribute), lock=True)
 
 
 def is_maya_batch():
@@ -223,3 +240,26 @@ def is_valid_group(group):
         return False
 
     return True
+
+
+def lock_unlock_attribute(element, attribute, state):
+    """ Unlocks the given attribute on the given element
+
+    :param element: Maya node name
+    :type element: string
+
+    :param attribute: Maya attribute name. Must exist
+    :type attribute: string
+
+    :param state: If we should lock or unlock
+    :type state: bool
+
+    :return: If the setting was successful or not
+    :rtype: bool
+    """
+
+    try:
+        cmds.setAttr("{}.{}".format(element, attribute), lock=state)
+        return True
+    except RuntimeError:
+        return False
