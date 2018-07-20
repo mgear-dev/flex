@@ -11,13 +11,19 @@ import logging
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
+
 from .attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from .attributes import OBJECT_DISPLAY_ATTRIBUTES
 from .attributes import RENDER_STATS_ATTRIBUTES
 from .decorators import timer
-from .query import (get_matching_shapes, get_shapes_from_group,
-                    get_prefix_less_dict, get_missing_shapes,
-                    get_shape_orig, get_dependency_node)
+from .query import (get_matching_shapes,
+                    get_shapes_from_group,
+                    get_prefix_less_dict,
+                    get_missing_shapes,
+                    get_shape_orig,
+                    get_dependency_node,
+                    is_lock_attribute,
+                    lock_unlock_attribute)
 
 logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
@@ -96,8 +102,20 @@ def update_attribute(source, target, attribute_name):
     # formats the command
     set_attr_cmds = command[0].replace(".{}".format(attribute_name),
                                        "{}.{}".format(target, attribute_name))
+
+    # checks for locking
+    lock = is_lock_attribute(target, attribute_name)
+
+    if not lock_unlock_attribute(target, attribute_name, False):
+        logger.error("The given attribute ({}) can't be updated on {}"
+                     .format(attribute_name, target))
+        return
+
     # sets the attribute value
     mel.eval(set_attr_cmds)
+
+    if lock:
+        lock_unlock_attribute(target, attribute_name, True)
 
 
 def update_deformed_shape(source, target):
