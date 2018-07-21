@@ -7,19 +7,19 @@ Flex is the main module that allows you to run the update tool
 """
 
 # imports
-from __future__ import absolute_import
 from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
-from flex.decorators import finished_running
-from flex.decorators import kill_flex_ui
-from flex.decorators import set_focus
-from flex.query import get_transform_selection
-from flex.query import is_maya_batch
-from flex.query import is_valid_group
-from flex.ui import FlexDialog
-from flex.update import update_rig
+# flex imports
+from .decorators import finished_running
+from .decorators import kill_flex_ui
+from .decorators import set_focus
+from .query import get_transform_selection
+from .query import is_maya_batch
+from .query import is_valid_group
+from .ui import FlexDialog
+from .update import update_rig
 
 
 class Flex(object):

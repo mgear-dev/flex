@@ -7,12 +7,12 @@ of maya transform nodes used as groups.
 """
 
 # import
-from __future__ import absolute_import
 from __builtin__ import isinstance
 from maya import OpenMaya
 from maya import cmds
 
-from flex.decorators import timer  # @UnusedImport
+# flex imports
+from .decorators import timer  # @UnusedImport
 
 
 def get_dependency_node(element):
