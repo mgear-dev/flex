@@ -8,12 +8,10 @@ decorators.
 """
 
 # imports
+from PySide2 import QtWidgets
+from maya import OpenMayaUI
 from maya import cmds
-import maya.OpenMayaUI as mui
-import shiboken2 as shi
-from PySide2 import QtCore as qc
-from PySide2 import QtGui as qg
-from PySide2 import QtWidgets as qw
+from shiboken2 import wrapInstance
 import time
 
 
@@ -42,11 +40,16 @@ def finished_running(function):
 
 
 def clean_instances(object_name):
+    """ Kill an already existing Flex ui
+
+    Checks if a existing instance of the Flex UI is open and kills it.
+
+    :param object_name: qt widget object name
+    :type object_name: str
+    """
 
     def kill_flex_ui(function):
-        """ Kill an already existing Flex ui
-
-        Checks if a existing instance of the Flex UI is open and kills it.
+        """ Search from previous flex UI and kills them
 
         :param function: your decorated function
         :type function: function
@@ -56,16 +59,16 @@ def clean_instances(object_name):
         """
 
         # checks for Flex ui instance
-        mayaMainWindowPtr = mui.MQtUtil.mainWindow()
-        mayaMainWindow = shi.wrapInstance(
-            long(mayaMainWindowPtr), qw.QMainWindow)
+        maya_main_window = OpenMayaUI.MQtUtil.mainWindow()
+        maya_main_window_widget = wrapInstance(long(maya_main_window),
+                                               QtWidgets.QMainWindow)
 
         # Go through main window's children to find any previous instances
-        for obj in mayaMainWindow.children():
-            if isinstance(obj, qw.QDialog) and obj.objectName() == object_name:
+        for obj in maya_main_window_widget.children():
+            if (isinstance(obj, QtWidgets.QDialog)
+                    and obj.objectName() == object_name):
                 obj.setParent(None)
                 obj.deleteLater()
-                print('Object {} deleted from memory'.format(obj))
                 del(obj)
 
         def wrapper_function(*args, **kwars):
@@ -73,9 +76,7 @@ def clean_instances(object_name):
             function_exec = function(*args, **kwars)
 
             return function_exec
-
         return wrapper_function
-
     return kill_flex_ui
 
 
@@ -126,5 +127,4 @@ def timer(function):
         print 'function: {} took {}'.format(function.__name__, t2)
 
         return function_exec
-
     return wrapper_function
