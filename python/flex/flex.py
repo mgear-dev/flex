@@ -11,8 +11,9 @@ from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
+# flex imports
 from .decorators import finished_running
-from .decorators import kill_flex_ui
+from .decorators import clean_instances
 from .decorators import set_focus
 from .query import get_transform_selection
 from .query import is_maya_batch
@@ -158,7 +159,7 @@ class Flex(object):
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
         return wrapInstance(long(maya_window), QtWidgets.QDialog)
 
-    @kill_flex_ui
+    @clean_instances(object_name='flex_qdialog')
     @set_focus
     def launch(self):
         """ Displays the user interface

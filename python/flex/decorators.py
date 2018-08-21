@@ -9,6 +9,11 @@ decorators.
 
 # imports
 from maya import cmds
+import maya.OpenMayaUI as mui
+import shiboken2 as shi
+from PySide2 import QtCore as qc
+from PySide2 import QtGui as qg
+from PySide2 import QtWidgets as qw
 import time
 
 
@@ -36,29 +41,42 @@ def finished_running(function):
     return wrapper_function
 
 
-def kill_flex_ui(function):
-    """ Kill an already existing Flex ui
+def clean_instances(object_name):
 
-    Checks if a existing instance of the Flex UI is open and kills it.
+    def kill_flex_ui(function):
+        """ Kill an already existing Flex ui
 
-    :param function: your decorated function
-    :type function: function
+        Checks if a existing instance of the Flex UI is open and kills it.
 
-    :return: your decorated function
-    :rtype: function
-    """
+        :param function: your decorated function
+        :type function: function
 
-    # checks for Flex ui instance
-    if cmds.window("flex_qdialog", exists=True):
-        cmds.deleteUI("flex_qdialog")
+        :return: your decorated function
+        :rtype: function
+        """
 
-    def wrapper_function(*args, **kwars):
-        # runs decorated function
-        function_exec = function(*args, **kwars)
+        # checks for Flex ui instance
+        mayaMainWindowPtr = mui.MQtUtil.mainWindow()
+        mayaMainWindow = shi.wrapInstance(
+            long(mayaMainWindowPtr), qw.QMainWindow)
 
-        return function_exec
+        # Go through main window's children to find any previous instances
+        for obj in mayaMainWindow.children():
+            if isinstance(obj, qw.QDialog) and obj.objectName() == object_name:
+                obj.setParent(None)
+                obj.deleteLater()
+                print('Object {} deleted from memory'.format(obj))
+                del(obj)
 
-    return wrapper_function
+        def wrapper_function(*args, **kwars):
+            # runs decorated function
+            function_exec = function(*args, **kwars)
+
+            return function_exec
+
+        return wrapper_function
+
+    return kill_flex_ui
 
 
 def set_focus(function):
