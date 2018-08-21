@@ -8,4 +8,4 @@ Flex is the mGear models (geometry) update tool inside rigs.
 
 __author__ = 'Jerome Drese'
 __email__ = 'jeromed@gmail.com'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
