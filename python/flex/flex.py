@@ -7,19 +7,20 @@ Flex is the main module that allows you to run the update tool
 """
 
 # imports
+from __future__ import absolute_import
 from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
 # flex imports
-from .decorators import finished_running
-from .decorators import clean_instances
-from .decorators import set_focus
-from .query import get_transform_selection
-from .query import is_maya_batch
-from .query import is_valid_group
-from .ui import FlexDialog
-from .update import update_rig
+from mgear.flex.decorators import finished_running
+from mgear.flex.decorators import clean_instances
+from mgear.flex.decorators import set_focus
+from mgear.flex.query import get_transform_selection
+from mgear.flex.query import is_maya_batch
+from mgear.flex.query import is_valid_group
+from mgear.flex.ui import FlexDialog
+from mgear.flex.update import update_rig
 
 
 class Flex(object):
@@ -159,7 +160,6 @@ class Flex(object):
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
         return wrapInstance(long(maya_window), QtWidgets.QDialog)
 
-    @clean_instances(object_name='flex_qdialog')
     @set_focus
     def launch(self):
         """ Displays the user interface
