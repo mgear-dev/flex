@@ -66,8 +66,8 @@ def clean_instances(object_name):
 
             # Go through main window's children to find any previous instances
             for obj in maya_main_window_widget.children():
-                if (isinstance(obj, QtWidgets.QDialog)
-                        and obj.objectName() == object_name):
+                if isinstance(obj, QtWidgets.QDialog) and (obj.objectName() ==
+                                                           object_name):
                     obj.setParent(None)
                     obj.deleteLater()
                     del(obj)
