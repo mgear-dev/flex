@@ -24,7 +24,7 @@ def install():
 
 
 @clean_instances(object_name='flex_qdialog')
-def run(*args, **kwargs): # @UnusedVariable
+def run(*args, **kwargs):  # @UnusedVariable
     """ Runs Flex Tool
     """
 
