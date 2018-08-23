@@ -185,8 +185,7 @@ class FlexDialog(QtWidgets.QDialog):
 
         # transformed
         self.transformed_check = QtWidgets.QCheckBox("Transformed")
-        self.transformed_check.setChecked(False)
-        self.transformed_check.setEnabled(False)
+        self.transformed_check.setChecked(True)
 
         # object display
         self.display_attributes_check = QtWidgets.QCheckBox(
