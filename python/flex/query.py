@@ -21,6 +21,9 @@ def get_dependency_node(element):
 
     :param element: Maya node to return a dependency node class object
     :type element: string
+
+    :return: the element in a Maya MFnDependencyNode object
+    :rtype: MFnDependencyNode
     """
 
     # adds the elements into an maya selection list
