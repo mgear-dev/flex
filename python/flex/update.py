@@ -13,7 +13,6 @@ from maya import OpenMaya
 from maya import cmds
 from maya import mel
 
-# flex imports
 from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
@@ -26,7 +25,9 @@ from mgear.flex.query import get_shape_orig
 from mgear.flex.query import get_shapes_from_group
 from mgear.flex.query import is_lock_attribute
 from mgear.flex.query import lock_unlock_attribute
+import pymel.core as pm
 
+# flex imports
 logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
 
@@ -87,24 +88,6 @@ def update_attribute(source, target, attribute_name):
     :type attribute_name: str
     """
 
-    # gets the given attribute_name plug
-    m_depend_node = get_dependency_node(source)
-    attribute = m_depend_node.findPlug(attribute_name)
-
-    # gets the setAttr command from the MPlug function
-    command = []
-    attribute.getSetAttrCmds(command, attribute.kAll, True)
-
-    # returns if command wans't fount
-    if not command:
-        logger.error("The given attribute can't be set: {}".format(
-                     attribute_name))
-        return
-
-    # formats the command
-    set_attr_cmds = command[0].replace(".{}".format(attribute_name),
-                                       "{}.{}".format(target, attribute_name))
-
     # checks for locking
     lock = is_lock_attribute(target, attribute_name)
 
@@ -113,8 +96,19 @@ def update_attribute(source, target, attribute_name):
                      .format(attribute_name, target))
         return
 
+    py_source = pm.PyNode(source)
+    py_target = pm.PyNode(target)
+
     # sets the attribute value
-    mel.eval(set_attr_cmds)
+    try:
+        attr_value = py_source.attr(attribute_name).get()
+        py_target.attr(attribute_name).set(attr_value)
+
+    except Exception as e:
+        logger.error("The given attribute ({}) can't be updated on {}"
+                     .format(attribute_name, target))
+        print e
+        return
 
     if lock:
         lock_unlock_attribute(target, attribute_name, True)
@@ -222,7 +216,7 @@ def update_rig(source, target, options, analytic=True):
 
     if not analytic:
         for shape in matching_shapes:
-            logger.info("Updating: {}".format(shape))
+            logger.info("Updating: {}".format(matching_shapes[shape]))
 
             if options["deformed"]:
                 update_deformed_shape(shape, matching_shapes[shape])
