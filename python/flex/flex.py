@@ -8,13 +8,12 @@ Flex is the main module that allows you to run the update tool
 
 # imports
 from __future__ import absolute_import
+
 from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
-# flex imports
 from mgear.flex.decorators import finished_running
-from mgear.flex.decorators import clean_instances
 from mgear.flex.decorators import set_focus
 from mgear.flex.query import get_transform_selection
 from mgear.flex.query import is_maya_batch
@@ -23,6 +22,7 @@ from mgear.flex.ui import FlexDialog
 from mgear.flex.update import update_rig
 
 
+# flex imports
 class Flex(object):
     """ Flex is the mGear rig update tool
 
@@ -59,6 +59,38 @@ class Flex(object):
         if self.source_group == self.target_group and not value:
             raise ValueError("The given source and target objects are the same"
                              ". Nothing to update!")
+
+    def __gather_ui_options(self):
+        """ Gathers all the UI execution options available in a dict
+
+        :return: A dict with the bool statements of options gathered
+        :rtype: dict
+
+        .. important: This is a list of options that need to be gathered.
+           * deformed
+           * transformed
+           * object_display
+           * component_display
+           * render_attributes
+           * plugin_attributes
+        """
+        # gather ui options
+        ui_options = {}
+
+        ui_options["deformed"] = self.ui.deformed_check.isChecked()
+        ui_options["transformed"] = self.ui.transformed_check.isChecked()
+        ui_options["user_attributes"] = (
+            self.ui.user_attributes_check.isChecked())
+        ui_options["object_display"] = (
+            self.ui.display_attributes_check.isChecked())
+        ui_options["component_display"] = (
+            self.ui.component_attributes_check.isChecked())
+        ui_options["render_attributes"] = (
+            self.ui.render_attributes_check.isChecked())
+        ui_options["plugin_attributes"] = (
+            self.ui.plugin_attributes_check.isChecked())
+
+        return ui_options
 
     def __repr__(self):
         return "{}".format(self.__class__)
@@ -212,11 +244,14 @@ class Flex(object):
         self.__update_ui()
 
     @finished_running
-    def update_rig(self, analytic=True):
+    def update_rig(self, analytic=True, run_options=None):
         """ Launches the rig update process
 
         :param analytic: Update rig runs in analytic mode
         :type analytic: bool
+
+        :param run_options: Options that will be used during the rig update
+        :type run_options: dict
         """
 
         message = ("You need to provided a source and target group in order to"
@@ -229,21 +264,9 @@ class Flex(object):
         # check if values are correct
         self.__property_check(None)
 
-        # gather ui options
-        ui_options = {}
-
-        ui_options["deformed"] = self.ui.deformed_check.isChecked()
-        ui_options["user_attributes"] = (
-            self.ui.user_attributes_check.isChecked())
-        ui_options["object_display"] = (
-            self.ui.display_attributes_check.isChecked())
-        ui_options["component_display"] = (
-            self.ui.component_attributes_check.isChecked())
-        ui_options["render_attributes"] = (
-            self.ui.render_attributes_check.isChecked())
-        ui_options["plugin_attributes"] = (
-            self.ui.plugin_attributes_check.isChecked())
+        if not run_options:
+            run_options = self.__gather_ui_options()
 
         # triggers the update
         update_rig(source=self.source_group, target=self.target_group,
-                   options=ui_options, analytic=analytic)
+                   options=run_options, analytic=analytic)
