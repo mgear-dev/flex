@@ -8,6 +8,7 @@ flex.update module handles the updating rig process
 
 # imports
 from __future__ import absolute_import
+
 import logging
 from maya import OpenMaya
 from maya import cmds
@@ -20,8 +21,10 @@ from mgear.flex.decorators import timer
 from mgear.flex.query import get_dependency_node
 from mgear.flex.query import get_matching_shapes
 from mgear.flex.query import get_missing_shapes
+from mgear.flex.query import get_parent
 from mgear.flex.query import get_prefix_less_dict
 from mgear.flex.query import get_shape_orig
+from mgear.flex.query import get_shape_type_attributes
 from mgear.flex.query import get_shapes_from_group
 from mgear.flex.query import is_lock_attribute
 from mgear.flex.query import lock_unlock_attribute
@@ -65,6 +68,30 @@ def add_attribute(source, target, attribute_name):
 
     # creates the attribute on the target
     mel.eval("{} {}".format(add_attr_cmd, target))
+
+
+def clean_uvs_sets(shape):
+    """ Deletes all uv sets besides map1
+
+    This is used to be able to update target shapes with whatever the source
+    shape has. This is only relevant for mesh shape types.
+
+    :param shape: The Maya shape node
+    :type shape: string
+    """
+
+    # check if shape is not a mesh type node
+    if cmds.objectType(shape) != "mesh":
+        return
+
+    # gets uvs indices
+    uvs_idx = cmds.getAttr("{}.uvSet".format(shape), multiIndices=True)
+
+    # deletes the extra indices
+    for idx in uvs_idx:
+        if idx:
+            cmds.setAttr("{}.uvSet[{}]".format(shape, idx), lock=False)
+            cmds.removeMultiInstance("{}.uvSet[{}]".format(shape, idx))
 
 
 def update_attribute(source, target, attribute_name):
@@ -124,23 +151,21 @@ def update_deformed_shape(source, target):
     :type target: str
     """
 
+    # gets orig shape
     deform_origin = get_shape_orig(target)
 
     if not deform_origin:
         return
 
+    if cmds.objectType(source) != cmds.objectType(target):
+        logger.info("{} and {} don't have same shape type. passing...".format(
+                    source, target))
+        return
+
     deform_origin = deform_origin[0]
 
-    # updates the shape
-    cmds.connectAttr("{}.outMesh".format(source),
-                     "{}.inMesh".format(deform_origin), force=True)
-
-    # forces shape evaluation to achieve the update
-    cmds.dgeval("{}.outMesh".format(target))
-
-    # finish shape update
-    cmds.disconnectAttr("{}.outMesh".format(source),
-                        "{}.inMesh".format(deform_origin))
+    # update the shape
+    update_shape(source, deform_origin)
 
 
 def update_maya_attributes(source, target, attributes):
@@ -221,6 +246,10 @@ def update_rig(source, target, options, analytic=True):
             if options["deformed"]:
                 update_deformed_shape(shape, matching_shapes[shape])
 
+            if options["transformed"]:
+                update_transformed_shape(shape, matching_shapes[shape],
+                                         options["hold_transform_values"])
+
             if options["user_attributes"]:
                 update_user_attributes(shape, matching_shapes[shape])
 
@@ -241,6 +270,80 @@ def update_rig(source, target, options, analytic=True):
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
+
+
+def update_shape(source, target):
+    """ Connect the shape output from source to the input shape on target
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+    """
+
+    # clean uvs on mesh nodes
+    clean_uvs_sets(target)
+
+    # get attributes names
+    attributes = get_shape_type_attributes(source)
+
+    # updates the shape
+    cmds.connectAttr("{}.{}".format(source, attributes["output"]),
+                     "{}.{}".format(target, attributes["input"]),
+                     force=True)
+
+    # forces shape evaluation to achieve the update
+    cmds.dgeval("{}.{}".format(target, attributes["output"]))
+
+    # finish shape update
+    cmds.disconnectAttr("{}.{}".format(source, attributes["output"]),
+                        "{}.{}".format(target, attributes["input"]))
+
+
+def update_transformed_shape(source, target, hold_transform):
+    """ Updates the target shape with the given source shape content
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+
+    :param hold_transform: keeps the transform node position values
+    :type hold_transform: bool
+    """
+
+    deform_origin = get_shape_orig(target)
+
+    if deform_origin:
+        return
+
+    # maintain transform on target
+    if hold_transform:
+        update_shape(source, target)
+
+    # update target transform
+    else:
+        # create duplicate of the source transform
+        holder = cmds.duplicate(source, parentOnly=True,
+                                name="mgear_flex_holder")[0]
+
+        cmds.parent(target, holder, add=True, shape=True)
+
+        for attr in cmds.listAttr(holder, locked=True) or []:
+            cmds.setAttr("{}.{}".format(holder, attr), lock=False)
+
+        # updates the shape
+        update_shape(source, target)
+
+        # parents new shape under the correct place
+        target_parent = get_parent(target)[0]
+        target_parent_parent = get_parent(target_parent)[0]
+        cmds.parent(holder, target_parent_parent)
+        cmds.delete(target_parent)
+        cmds.rename(holder, "{}".format(target_parent.split("|")[-1].split(":")
+                                        [-1]))
 
 
 def update_user_attributes(source, target):

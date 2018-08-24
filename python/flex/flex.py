@@ -73,6 +73,7 @@ class Flex(object):
            * component_display
            * render_attributes
            * plugin_attributes
+           * hold_transform_values
         """
         # gather ui options
         ui_options = {}
@@ -89,6 +90,8 @@ class Flex(object):
             self.ui.render_attributes_check.isChecked())
         ui_options["plugin_attributes"] = (
             self.ui.plugin_attributes_check.isChecked())
+        ui_options["hold_transform_values"] = (
+            self.ui.transformed_hold_check.isChecked())
 
         return ui_options
 
@@ -190,7 +193,7 @@ class Flex(object):
 
         # gets Maya main window object
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
-        return wrapInstance(long(maya_window), QtWidgets.QDialog)
+        return wrapInstance(long(maya_window), QtWidgets.QMainWindow)
 
     @set_focus
     def launch(self):
