@@ -95,6 +95,17 @@ def get_missing_shapes(source_shapes, target_shapes):
                  if s not in target_shapes])
 
 
+def get_parent(element):
+    """ Returns the first parent found for the given element
+
+    :param element: A Maya dag node
+    :type shape: string
+    """
+
+    return cmds.listRelatives(element, parent=True, fullPath=True,
+                              type="transform")
+
+
 # @timer
 def get_prefix_less_dict(elements):
     """ Returns a dict containing each element with a stripped prefix
@@ -136,9 +147,13 @@ def get_shape_orig(shape):
               and stable ways of doing this.
     """
 
+    # gets attributes names
+    attributes = get_shape_type_attributes(shape)
+
     orig_shapes = []
     {orig_shapes.append(n) for n in (cmds.ls(cmds.listHistory(
-        shape + ".inMesh"), type="mesh")) if n != shape}
+        "{}.{}".format(shape, attributes["input"])),
+        type=cmds.objectType(shape))) if n != shape}
 
     if len(orig_shapes) == 0:
         orig_shapes = None
@@ -163,9 +178,26 @@ def get_shapes_from_group(group):
     if not cmds.objExists(group):
         raise RuntimeError("Given element {} does not exists.".format(group))
 
+    shapes = []
+
     # gets shapes inside the given group
-    shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
+    meshes = cmds.ls(group, dagObjects=True, noIntermediate=True,
                      exactType=("mesh"))
+
+    nurbs_curves = cmds.ls(group, dagObjects=True, noIntermediate=True,
+                           exactType=("nurbsCurve"))
+
+    nurbs_surfaces = cmds.ls(group, dagObjects=True, noIntermediate=True,
+                             exactType=("nurbsSurface"))
+
+    for i in meshes:
+        shapes.append(i)
+
+    for i in nurbs_curves:
+        shapes.append(i)
+
+    for i in nurbs_surfaces:
+        shapes.append(i)
 
     if not shapes:
         raise ValueError("No shape(s) found under the given group: '{}'"
