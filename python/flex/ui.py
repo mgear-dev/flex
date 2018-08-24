@@ -7,7 +7,7 @@ Contains the Flex user interface
 """
 
 # imports
-from PySide2 import QtWidgets, QtGui
+from PySide2 import QtWidgets, QtGui, QtCore
 
 
 class FlexDialog(QtWidgets.QDialog):
@@ -179,13 +179,41 @@ class FlexDialog(QtWidgets.QDialog):
         self.vertex_colours_check.setChecked(True)
         self.vertex_colours_check.setEnabled(False)
 
+        # Transformed & Deformed
+        t_n_d_widget = QtWidgets.QWidget()
+        t_n_d_layout = QtWidgets.QHBoxLayout()
+        t_n_d_layout.setContentsMargins(0, 0, 0, 0)
+        t_n_d_widget.setContentsMargins(0, 0, 0, 0)
+        t_n_d_widget.setLayout(t_n_d_layout)
+
         # deformed
-        self.deformed_check = QtWidgets.QCheckBox("Deformed")
+        self.deformed_check = QtWidgets.QGroupBox("Deformed")
+        self.deformed_check.setCheckable(True)
         self.deformed_check.setChecked(True)
 
         # transformed
-        self.transformed_check = QtWidgets.QCheckBox("Transformed")
+        self.transformed_check = QtWidgets.QGroupBox("Transformed")
+        self.transformed_check.setCheckable(True)
         self.transformed_check.setChecked(True)
+        transformed_layout = QtWidgets.QVBoxLayout()
+        transformed_layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.transformed_check.setLayout(transformed_layout)
+
+        # hold position values
+        self.transformed_hold_check = QtWidgets.QRadioButton(
+            "Hold position values")
+        self.transformed_hold_check.setChecked(True)
+        # new position values
+        self.transformed_new_check = QtWidgets.QRadioButton(
+            "New position values")
+
+        # add widgets to transformed group box
+        transformed_layout.addWidget(self.transformed_hold_check)
+        transformed_layout.addWidget(self.transformed_new_check)
+
+        # add to layout
+        t_n_d_layout.addWidget(self.transformed_check)
+        t_n_d_layout.addWidget(self.deformed_check)
 
         # object display
         self.display_attributes_check = QtWidgets.QCheckBox(
@@ -201,11 +229,10 @@ class FlexDialog(QtWidgets.QDialog):
         grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
         grid_layout.addWidget(self.plugin_attributes_check, 0, 1, 1, 1)
         grid_layout.addWidget(self.render_attributes_check, 0, 2, 1, 1)
-        grid_layout.addWidget(self.deformed_check, 1, 0, 1, 1)
-        grid_layout.addWidget(self.transformed_check, 1, 1, 1, 1)
         grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
-        grid_layout.addWidget(self.display_attributes_check, 2, 0, 1, 1)
-        grid_layout.addWidget(self.component_attributes_check, 2, 1, 1, 1)
+        grid_layout.addWidget(self.display_attributes_check, 1, 0, 1, 1)
+        grid_layout.addWidget(self.component_attributes_check, 1, 1, 1, 1)
+        grid_layout.addWidget(t_n_d_widget, 2, 0, 1, 3)
 
         # adds the group box widget to the widgets_layout
         self.widgets_layout.addWidget(group_box)
