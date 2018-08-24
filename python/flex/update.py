@@ -115,6 +115,11 @@ def update_attribute(source, target, attribute_name):
     :type attribute_name: str
     """
 
+    if not cmds.objExists("{}.{}".format(target, attribute_name)):
+        logger.warning("The current target {} does not have attribute: {}"
+                       .format(target, attribute_name))
+        return
+
     # checks for locking
     lock = is_lock_attribute(target, attribute_name)
 
