@@ -174,6 +174,51 @@ def get_shapes_from_group(group):
     return shapes
 
 
+def get_shape_type_attributes(shape):
+    """ Returns a dict with the attributes names depending on the shape type
+
+    This function returns the points, output, input and axes attributes for
+    the corresponding shape type. Mesh type of nodes will be set as default
+    but nurbs surfaces and nurbs curves are supported too.
+
+    on mesh nodes: points = pnts
+                   output = outMesh
+                   input = inMesh
+                   p_axes = (pntx, pnty, pntz)
+
+    on nurbs nodes: points = controlPoints
+                    output = local
+                    input = create
+                    p_axes = (xValue, yValue, zValue)
+
+    :param shape: maya shape node
+    :type shape: str
+
+    :return: corresponding attributes names
+    :rtype: dict
+    """
+
+    # declares the dict
+    shape_attributes = dict()
+
+    # set the default values for a mesh node type
+    shape_attributes["points"] = "pnts"
+    shape_attributes["input"] = "inMesh"
+    shape_attributes["output"] = "outMesh"
+    shape_attributes["p_axes"] = ("pntx", "pnty", "pntz")
+
+    if cmds.objectType(shape) == "nurbsSurface" or (cmds.objectType(shape) ==
+                                                    "nurbsCurve"):
+
+        # set the default values for a nurbs node type
+        shape_attributes["points"] = "controlPoints"
+        shape_attributes["input"] = "create"
+        shape_attributes["output"] = "local"
+        shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
+
+    return shape_attributes
+
+
 # @timer
 def get_transform_selection():
     """ Gets the current dag object selection
