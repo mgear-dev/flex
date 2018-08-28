@@ -15,14 +15,17 @@ from shiboken2 import wrapInstance
 
 from mgear.flex.decorators import finished_running
 from mgear.flex.decorators import set_focus
+from mgear.flex.query import get_matching_shapes
+from mgear.flex.query import get_prefix_less_dict
+from mgear.flex.query import get_shapes_from_group
 from mgear.flex.query import get_transform_selection
 from mgear.flex.query import is_maya_batch
 from mgear.flex.query import is_valid_group
+from mgear.flex.ui import FlexAnalyzeDialog
 from mgear.flex.ui import FlexDialog
 from mgear.flex.update import update_rig
 
 
-# flex imports
 class Flex(object):
     """ Flex is the mGear rig update tool
 
@@ -40,9 +43,23 @@ class Flex(object):
 
         # initialise Flex user interface
         self.ui = FlexDialog(self.__warp_maya_window())
+        self.analyze_ui = FlexAnalyzeDialog(self.ui)
 
         # connect user interface signals
         self.__setup_ui_signals()
+
+    def __check_source_and_target_properties(self):
+        """ Raises ValueError if source_group and target_group are not set
+        """
+
+        message = ("You need to provided a source and target group in order to"
+                   " run the rig update.")
+
+        # check if values have been set
+        if not self.source_group or not self.target_group:
+            raise ValueError(message)
+
+        return
 
     def __property_check(self, value):
         """ Flex properties check
@@ -163,11 +180,10 @@ class Flex(object):
             lambda: self.__set_text_edits(self.ui.target_text))
 
         # analyse button
-        self.ui.analyse_button.clicked.connect(self.update_rig)
+        self.ui.analyse_button.clicked.connect(self.analyse_rig)
 
         # run button
-        self.ui.run_button.clicked.connect(
-            lambda: self.update_rig(analytic=False))
+        self.ui.run_button.clicked.connect(self.update_rig)
 
     def __str__(self):
         return "mGear: Flex == > An awesome rig update tool"
@@ -194,6 +210,29 @@ class Flex(object):
         # gets Maya main window object
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
         return wrapInstance(long(maya_window), QtWidgets.QMainWindow)
+
+    def analyse_rig(self):
+        """ Runs a scan of the source and target shapes
+        """
+
+        # checks if groups are set
+        self.__check_source_and_target_properties()
+
+        self.analyze_ui.show()
+
+        # gets all shapes on source and target
+        source_shapes = get_shapes_from_group(self.source_group)
+        target_shapes = get_shapes_from_group(self.target_group)
+
+        # gets prefix-less shapes
+        sources_dict = get_prefix_less_dict(source_shapes)
+        targets_dict = get_prefix_less_dict(target_shapes)
+
+        # gets the matching shapes
+        matching_shapes = get_matching_shapes(sources_dict, targets_dict)
+
+        for shape in matching_shapes:
+            self.analyze_ui.add_items(shape, matching_shapes[shape])
 
     @set_focus
     def launch(self):
@@ -247,7 +286,7 @@ class Flex(object):
         self.__update_ui()
 
     @finished_running
-    def update_rig(self, analytic=True, run_options=None):
+    def update_rig(self, run_options=None):
         """ Launches the rig update process
 
         :param analytic: Update rig runs in analytic mode
@@ -257,12 +296,8 @@ class Flex(object):
         :type run_options: dict
         """
 
-        message = ("You need to provided a source and target group in order to"
-                   " run the rig update.")
-
-        # check if values have been set
-        if not self.source_group or not self.target_group:
-            raise ValueError(message)
+        # checks if groups are set
+        self.__check_source_and_target_properties()
 
         # check if values are correct
         self.__property_check(None)
@@ -272,4 +307,4 @@ class Flex(object):
 
         # triggers the update
         update_rig(source=self.source_group, target=self.target_group,
-                   options=run_options, analytic=analytic)
+                   options=run_options)
