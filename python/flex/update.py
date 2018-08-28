@@ -30,7 +30,6 @@ from mgear.flex.query import is_lock_attribute
 from mgear.flex.query import lock_unlock_attribute
 import pymel.core as pm
 
-# flex imports
 logger = logging.getLogger("mGear: Flex")
 logger.setLevel(logging.DEBUG)
 
@@ -128,6 +127,11 @@ def update_attribute(source, target, attribute_name):
                      .format(attribute_name, target))
         return
 
+    # creates pymel nodes to get and apply attributes from
+    # I am using pymel as they managed to handle default attributes on
+    # referenced nodes correctly. When using MPlug.getSetAttrCmd with kAll
+    # this doesn't return the command correctly when nodes in reference have
+    # the attribute left as default
     py_source = pm.PyNode(source)
     py_target = pm.PyNode(target)
 
@@ -156,15 +160,19 @@ def update_deformed_shape(source, target):
     :type target: str
     """
 
+    logger.info("Update deformed shapes options running...")
+
     # gets orig shape
     deform_origin = get_shape_orig(target)
 
     if not deform_origin:
         return
 
+    logger.info("Deformed shape found: {}".format(target))
+
     if cmds.objectType(source) != cmds.objectType(target):
-        logger.info("{} and {} don't have same shape type. passing...".format(
-                    source, target))
+        logger.warning("{} and {} don't have same shape type. passing..."
+                       .format(source, target))
         return
 
     deform_origin = deform_origin[0]
@@ -209,7 +217,7 @@ def update_plugin_attributes(source, target):
 
 
 @timer
-def update_rig(source, target, options, analytic=True):
+def update_rig(source, target, options):
     """ Updates all shapes from the given source group to the target group
 
     :param source: maya transform node
@@ -220,9 +228,6 @@ def update_rig(source, target, options, analytic=True):
 
     :param options: update options
     :type options: dict
-
-    :param analytic: updating the rig in analytic mode
-    :type analytic: bool
     """
 
     # gets all shapes on source and target
@@ -244,34 +249,33 @@ def update_rig(source, target, options, analytic=True):
 
     logger.info("Matching shapes: {}" .format(matching_shapes))
 
-    if not analytic:
-        for shape in matching_shapes:
-            logger.info("Updating: {}".format(matching_shapes[shape]))
+    for shape in matching_shapes:
+        logger.info("Updating: {}".format(matching_shapes[shape]))
 
-            if options["deformed"]:
-                update_deformed_shape(shape, matching_shapes[shape])
+        if options["deformed"]:
+            update_deformed_shape(shape, matching_shapes[shape])
 
-            if options["transformed"]:
-                update_transformed_shape(shape, matching_shapes[shape],
-                                         options["hold_transform_values"])
+        if options["transformed"]:
+            update_transformed_shape(shape, matching_shapes[shape],
+                                     options["hold_transform_values"])
 
-            if options["user_attributes"]:
-                update_user_attributes(shape, matching_shapes[shape])
+        if options["user_attributes"]:
+            update_user_attributes(shape, matching_shapes[shape])
 
-            if options["object_display"]:
-                update_maya_attributes(shape, matching_shapes[shape],
-                                       OBJECT_DISPLAY_ATTRIBUTES)
+        if options["object_display"]:
+            update_maya_attributes(shape, matching_shapes[shape],
+                                   OBJECT_DISPLAY_ATTRIBUTES)
 
-            if options["component_display"]:
-                update_maya_attributes(shape, matching_shapes[shape],
-                                       COMPONENT_DISPLAY_ATTRIBUTES)
+        if options["component_display"]:
+            update_maya_attributes(shape, matching_shapes[shape],
+                                   COMPONENT_DISPLAY_ATTRIBUTES)
 
-            if options["render_attributes"]:
-                update_maya_attributes(shape, matching_shapes[shape],
-                                       RENDER_STATS_ATTRIBUTES)
+        if options["render_attributes"]:
+            update_maya_attributes(shape, matching_shapes[shape],
+                                   RENDER_STATS_ATTRIBUTES)
 
-            if options["plugin_attributes"]:
-                update_plugin_attributes(shape, matching_shapes[shape])
+        if options["plugin_attributes"]:
+            update_plugin_attributes(shape, matching_shapes[shape])
 
     logger.info("Source missing shapes: {}" .format(missing_source_shapes))
     logger.info("Target missing shapes: {}" .format(missing_target_shapes))
@@ -292,6 +296,8 @@ def update_shape(source, target):
 
     # get attributes names
     attributes = get_shape_type_attributes(source)
+
+    logger.info("Updating shape: {} using --> {}".format(target, source))
 
     # updates the shape
     cmds.connectAttr("{}.{}".format(source, attributes["output"]),
@@ -319,10 +325,14 @@ def update_transformed_shape(source, target, hold_transform):
     :type hold_transform: bool
     """
 
+    logger.info("Update transformed shapes options running...")
+
     deform_origin = get_shape_orig(target)
 
     if deform_origin:
         return
+
+    logger.info("Transformed shape found: {}".format(target))
 
     # maintain transform on target
     if hold_transform:
