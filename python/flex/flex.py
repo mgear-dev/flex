@@ -21,8 +21,8 @@ from mgear.flex.query import get_shapes_from_group
 from mgear.flex.query import get_transform_selection
 from mgear.flex.query import is_maya_batch
 from mgear.flex.query import is_valid_group
-from mgear.flex.ui import FlexAnalyzeDialog
-from mgear.flex.ui import FlexDialog
+from mgear.flex.analyze_widget import FlexAnalyzeDialog
+from mgear.flex.flex_widget import FlexDialog
 from mgear.flex.update import update_rig
 
 
@@ -43,7 +43,6 @@ class Flex(object):
 
         # initialise Flex user interface
         self.ui = FlexDialog(self.__warp_maya_window())
-        self.analyze_ui = FlexAnalyzeDialog(self.ui)
 
         # connect user interface signals
         self.__setup_ui_signals()
@@ -218,6 +217,14 @@ class Flex(object):
         # checks if groups are set
         self.__check_source_and_target_properties()
 
+        # Go through main window's children to find any previous instances
+        for obj in self.ui.children():
+            if obj.objectName() == "flex_analyse_qdialog":
+                obj.setParent(None)
+                obj.deleteLater()
+                del(obj)
+
+        self.analyze_ui = FlexAnalyzeDialog(self.ui)
         self.analyze_ui.show()
 
         # gets all shapes on source and target
