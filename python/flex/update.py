@@ -312,6 +312,42 @@ def update_shape(source, target):
                         "{}.{}".format(target, attributes["input"]))
 
 
+def update_transform(source, target):
+    """ Updates the transform node on target
+
+    This method creates a duplicate of the transform node on source and
+    uses is as the new parent transform for the target shape
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+    """
+
+    # create duplicate of the source transform
+    holder = cmds.duplicate(source, parentOnly=True,
+                            name="mgear_flex_holder")[0]
+
+    # adds the target shape duplicate into the holder transform node
+    cmds.parent(target, holder, add=True, shape=True)
+
+    # unlock locked attributes on holder transform node
+    for attr in cmds.listAttr(holder, locked=True) or []:
+        cmds.setAttr("{}.{}".format(holder, attr), lock=False)
+
+    # updates the shape
+    update_shape(source, target)
+
+    # parents new shape under the correct place
+    target_parent = get_parent(target)[0]
+    target_parent_parent = get_parent(target_parent)[0]
+    cmds.parent(holder, target_parent_parent)
+    cmds.delete(target_parent)
+    cmds.rename(holder, "{}".format(target_parent.split("|")[-1].split(":")
+                                    [-1]))
+
+
 def update_transformed_shape(source, target, hold_transform):
     """ Updates the target shape with the given source shape content
 
@@ -340,25 +376,7 @@ def update_transformed_shape(source, target, hold_transform):
 
     # update target transform
     else:
-        # create duplicate of the source transform
-        holder = cmds.duplicate(source, parentOnly=True,
-                                name="mgear_flex_holder")[0]
-
-        cmds.parent(target, holder, add=True, shape=True)
-
-        for attr in cmds.listAttr(holder, locked=True) or []:
-            cmds.setAttr("{}.{}".format(holder, attr), lock=False)
-
-        # updates the shape
-        update_shape(source, target)
-
-        # parents new shape under the correct place
-        target_parent = get_parent(target)[0]
-        target_parent_parent = get_parent(target_parent)[0]
-        cmds.parent(holder, target_parent_parent)
-        cmds.delete(target_parent)
-        cmds.rename(holder, "{}".format(target_parent.split("|")[-1].split(":")
-                                        [-1]))
+        update_transform(source, target)
 
 
 def update_user_attributes(source, target):
