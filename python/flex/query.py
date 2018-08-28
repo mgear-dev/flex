@@ -192,23 +192,14 @@ def get_shapes_from_group(group):
     shapes = []
 
     # gets shapes inside the given group
-    meshes = cmds.ls(group, dagObjects=True, noIntermediate=True,
-                     exactType=("mesh"))
+    shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
+                     exactType=("mesh")) or [])
 
-    nurbs_curves = cmds.ls(group, dagObjects=True, noIntermediate=True,
-                           exactType=("nurbsCurve"))
+    shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
+                          exactType=("nurbsCurve")) or [])
 
-    nurbs_surfaces = cmds.ls(group, dagObjects=True, noIntermediate=True,
-                             exactType=("nurbsSurface"))
-
-    for i in meshes:
-        shapes.append(i)
-
-    for i in nurbs_curves:
-        shapes.append(i)
-
-    for i in nurbs_surfaces:
-        shapes.append(i)
+    shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
+                          exactType=("nurbsSurface"))or [])
 
     if not shapes:
         raise ValueError("No shape(s) found under the given group: '{}'"
