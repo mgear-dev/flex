@@ -8,14 +8,13 @@ of maya transform nodes used as groups.
 
 # import
 from __future__ import absolute_import
-from __builtin__ import isinstance
 from maya import OpenMaya
 from maya import cmds
-
-# flex imports
+import os
 from mgear.flex.decorators import timer  # @UnusedImport
 
 
+# flex imports
 def get_dependency_node(element):
     """ Returns a Maya MFnDependencyNode from the given element
 
@@ -130,6 +129,18 @@ def get_prefix_less_dict(elements):
     return dict([(n.split("|")[-1].split(":")[-1], n) for n in elements])
 
 
+def get_resources_path():
+    """ Gets the directory path to the resources files
+    """
+
+    file_dir = os.path.dirname(__file__)
+
+    if "\\" in file_dir:
+        file_dir = file_dir.replace("\\", "/")
+
+    return "{}/resources".format(file_dir)
+
+
 # @timer
 def get_shape_orig(shape):
     """ Finds the orig (intermediate shape) on the given shape
@@ -206,6 +217,26 @@ def get_shapes_from_group(group):
     return shapes
 
 
+# @timer
+def get_transform_selection():
+    """ Gets the current dag object selection
+
+    Returns the first selected dag object on a current selection that is a
+    transform node
+
+    :return: the first element of the current maya selection
+    :rtype: str
+    """
+
+    selection = cmds.ls(selection=True, dagObjects=True, type='transform',
+                        flatten=True, allPaths=True)
+
+    if len(selection) >= 1:
+        selection = selection[0]
+
+    return selection or None
+
+
 def get_shape_type_attributes(shape):
     """ Returns a dict with the attributes names depending on the shape type
 
@@ -249,31 +280,6 @@ def get_shape_type_attributes(shape):
         shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
 
     return shape_attributes
-
-
-# @timer
-def get_transform_selection():
-    """ Gets the current dag object selection
-
-    Returns the first selected dag object on a current selection that is a
-    transform node
-
-    :return: the first element of the current maya selection
-    :rtype: str
-    """
-
-    selection = cmds.ls(selection=True, dagObjects=True, type='transform',
-                        flatten=True, allPaths=True)
-
-    if len(selection) > 1:
-        selection = selection[0]
-
-    # checks if the selection is a list type variable
-    if isinstance(selection, list):
-        return selection[0]
-
-    else:
-        return selection or None
 
 
 def is_lock_attribute(element, attribute):
