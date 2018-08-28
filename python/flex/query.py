@@ -187,7 +187,7 @@ def get_shapes_from_group(group):
 
     # gets shapes inside the given group
     shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
-                     exactType=("mesh")) or [])
+                          exactType=("mesh")) or [])
 
     shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
                           exactType=("nurbsCurve")) or [])
