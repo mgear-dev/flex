@@ -181,13 +181,7 @@ def get_shapes_from_group(group):
 
     :return: list of shapes objects
     :rtype: list str
-
-    .. important:: only mesh shapes are returned for now
     """
-
-    # checks if exists inside maya scene
-    if not cmds.objExists(group):
-        raise RuntimeError("Given element {} does not exists.".format(group))
 
     shapes = []
 
