@@ -10,6 +10,9 @@ Contains the Flex user interface
 from PySide2 import QtWidgets, QtCore
 from mgear.flex.colors import RED, GREEN, BLUE, YELLOW
 
+# flex ui name
+FLEX_UI_NAME = "flex_qdialog"
+
 
 class FlexDialog(QtWidgets.QDialog):
     """ The Flex UI widgets
@@ -26,11 +29,12 @@ class FlexDialog(QtWidgets.QDialog):
         super(FlexDialog, self).__init__(parent=parent)
 
         # sets window rules
-        self.setObjectName("flex_qdialog")
+        self.setObjectName(FLEX_UI_NAME)
         self.setWindowTitle("mGear: Flex (rig updater)")
         self.setStyleSheet(self.__style_sheet())
         self.setMinimumWidth(350)
         self.setMinimumHeight(100)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         # creates widgets
         self.layout_widgets()

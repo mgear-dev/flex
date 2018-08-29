@@ -9,8 +9,12 @@ Contains the Flex Analyze interface
 
 # imports
 from PySide2 import QtWidgets, QtGui, QtCore
-from mgear.flex.query import get_resources_path
+
 from mgear.flex.colors import YELLOW
+from mgear.flex.query import get_resources_path
+
+# flex analyze name
+FLEX_ANALYZE_NAME = "flex_analyse_qdialog"
 
 
 class FlexAnalyzeDialog(QtWidgets.QDialog):
@@ -29,7 +33,7 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         super(FlexAnalyzeDialog, self).__init__(parent=parent)
 
         # sets window rules
-        self.setObjectName("flex_analyse_qdialog")
+        self.setObjectName(FLEX_ANALYZE_NAME)
         self.setWindowTitle("mGear: Flex analyze shapes")
         self.setMinimumWidth(500)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
