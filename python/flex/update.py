@@ -19,13 +19,11 @@ from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
 from mgear.flex.decorators import timer
 from mgear.flex.query import get_dependency_node
-from mgear.flex.query import get_matching_shapes
-from mgear.flex.query import get_missing_shapes
+from mgear.flex.query import get_matching_shapes_from_group
+from mgear.flex.query import get_missing_shapes_from_group
 from mgear.flex.query import get_parent
-from mgear.flex.query import get_prefix_less_dict
 from mgear.flex.query import get_shape_orig
 from mgear.flex.query import get_shape_type_attributes
-from mgear.flex.query import get_shapes_from_group
 from mgear.flex.query import is_lock_attribute
 from mgear.flex.query import lock_unlock_attribute
 import pymel.core as pm
@@ -230,22 +228,8 @@ def update_rig(source, target, options):
     :type options: dict
     """
 
-    # gets all shapes on source and target
-    source_shapes = get_shapes_from_group(source)
-    target_shapes = get_shapes_from_group(target)
-
-    # gets prefix-less shapes
-    sources_dict = get_prefix_less_dict(source_shapes)
-    targets_dict = get_prefix_less_dict(target_shapes)
-
     # gets the matching shapes
-    matching_shapes = get_matching_shapes(sources_dict, targets_dict)
-
-    # gets missing target shapes
-    missing_target_shapes = get_missing_shapes(sources_dict, targets_dict)
-
-    # gets missing source shapes
-    missing_source_shapes = get_missing_shapes(targets_dict, sources_dict)
+    matching_shapes = get_matching_shapes_from_group(source, target)
 
     logger.info("Matching shapes: {}" .format(matching_shapes))
 
@@ -277,8 +261,10 @@ def update_rig(source, target, options):
         if options["plugin_attributes"]:
             update_plugin_attributes(shape, matching_shapes[shape])
 
-    logger.info("Source missing shapes: {}" .format(missing_source_shapes))
-    logger.info("Target missing shapes: {}" .format(missing_target_shapes))
+    logger.info("Source missing shapes: {}" .format(
+        get_missing_shapes_from_group(source, target)))
+    logger.info("Target missing shapes: {}" .format(
+        get_missing_shapes_from_group(target, source)))
 
 
 def update_shape(source, target):
