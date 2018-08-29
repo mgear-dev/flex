@@ -46,10 +46,10 @@ def get_matching_shapes(source_shapes, target_shapes):
     name from the source.
 
     :param source_shapes: sources dictionary containing prefix-less shapes
-    :type group: dict
+    :type source_shapes: dict
 
     :param target: targets dictionary containing prefix-less shapes
-    :type group: dict
+    :type target: dict
 
     :return: The matching target shapes names
     :rtype: dict
@@ -71,6 +71,30 @@ def get_matching_shapes(source_shapes, target_shapes):
                  if s in target_shapes])
 
 
+def get_matching_shapes_from_group(source, target):
+    """ Returns the matching shapes from the given source and target group
+
+    :param source: source group containing shapes in Maya
+    :type source: string
+
+    :param target: target group containing shapes in Maya
+    :type target: string
+
+    :return: The matching target shapes names
+    :rtype: dict
+    """
+
+    # gets all shapes on source and target
+    source_shapes = get_shapes_from_group(source)
+    target_shapes = get_shapes_from_group(target)
+
+    # gets prefix-less shapes
+    sources_dict = get_prefix_less_dict(source_shapes)
+    targets_dict = get_prefix_less_dict(target_shapes)
+
+    return get_matching_shapes(sources_dict, targets_dict)
+
+
 # @timer
 def get_missing_shapes(source_shapes, target_shapes):
     """ Returns the missing shapes
@@ -79,10 +103,10 @@ def get_missing_shapes(source_shapes, target_shapes):
     found on the target.
 
     :param source_shapes: sources dictionary containing prefix-less shapes
-    :type group: dict
+    :type source_shapes: dict
 
     :param target: targets dictionary containing prefix-less shapes
-    :type group: dict
+    :type target: dict
 
     :return: The missing target shapes names
     :rtype: dict
@@ -94,11 +118,35 @@ def get_missing_shapes(source_shapes, target_shapes):
                  if s not in target_shapes])
 
 
+def get_missing_shapes_from_group(source, target):
+    """ Returns the missing shapes from the given source and target group
+
+    :param source: source group containing shapes in Maya
+    :type source: string
+
+    :param target: source group containing shapes in Maya
+    :type target: string
+
+    :return: The missing target shapes names
+    :rtype: dict
+    """
+
+    # gets all shapes on source and target
+    source_shapes = get_shapes_from_group(source)
+    target_shapes = get_shapes_from_group(target)
+
+    # gets prefix-less shapes
+    sources_dict = get_prefix_less_dict(source_shapes)
+    targets_dict = get_prefix_less_dict(target_shapes)
+
+    return get_missing_shapes(sources_dict, targets_dict)
+
+
 def get_parent(element):
     """ Returns the first parent found for the given element
 
     :param element: A Maya dag node
-    :type shape: string
+    :type element: string
     """
 
     return cmds.listRelatives(element, parent=True, fullPath=True,
@@ -113,7 +161,7 @@ def get_prefix_less_dict(elements):
     the element without the found prefix
 
     :param elements: List of all your shapes
-    :type group: list
+    :type elements: list
 
     :return: The matching prefix-less elements
     :rtype: dict
@@ -172,6 +220,51 @@ def get_shape_orig(shape):
     return orig_shapes
 
 
+def get_shape_type_attributes(shape):
+    """ Returns a dict with the attributes names depending on the shape type
+
+    This function returns the points, output, input and axes attributes for
+    the corresponding shape type. Mesh type of nodes will be set as default
+    but nurbs surfaces and nurbs curves are supported too.
+
+    on mesh nodes: points = pnts
+                   output = outMesh
+                   input = inMesh
+                   p_axes = (pntx, pnty, pntz)
+
+    on nurbs nodes: points = controlPoints
+                    output = local
+                    input = create
+                    p_axes = (xValue, yValue, zValue)
+
+    :param shape: maya shape node
+    :type shape: str
+
+    :return: corresponding attributes names
+    :rtype: dict
+    """
+
+    # declares the dict
+    shape_attributes = dict()
+
+    # set the default values for a mesh node type
+    shape_attributes["points"] = "pnts"
+    shape_attributes["input"] = "inMesh"
+    shape_attributes["output"] = "outMesh"
+    shape_attributes["p_axes"] = ("pntx", "pnty", "pntz")
+
+    if cmds.objectType(shape) == "nurbsSurface" or (cmds.objectType(shape) ==
+                                                    "nurbsCurve"):
+
+        # set the default values for a nurbs node type
+        shape_attributes["points"] = "controlPoints"
+        shape_attributes["input"] = "create"
+        shape_attributes["output"] = "local"
+        shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
+
+    return shape_attributes
+
+
 # @timer
 def get_shapes_from_group(group):
     """ Gets all object shapes existing inside the given group
@@ -222,51 +315,6 @@ def get_transform_selection():
     return selection or None
 
 
-def get_shape_type_attributes(shape):
-    """ Returns a dict with the attributes names depending on the shape type
-
-    This function returns the points, output, input and axes attributes for
-    the corresponding shape type. Mesh type of nodes will be set as default
-    but nurbs surfaces and nurbs curves are supported too.
-
-    on mesh nodes: points = pnts
-                   output = outMesh
-                   input = inMesh
-                   p_axes = (pntx, pnty, pntz)
-
-    on nurbs nodes: points = controlPoints
-                    output = local
-                    input = create
-                    p_axes = (xValue, yValue, zValue)
-
-    :param shape: maya shape node
-    :type shape: str
-
-    :return: corresponding attributes names
-    :rtype: dict
-    """
-
-    # declares the dict
-    shape_attributes = dict()
-
-    # set the default values for a mesh node type
-    shape_attributes["points"] = "pnts"
-    shape_attributes["input"] = "inMesh"
-    shape_attributes["output"] = "outMesh"
-    shape_attributes["p_axes"] = ("pntx", "pnty", "pntz")
-
-    if cmds.objectType(shape) == "nurbsSurface" or (cmds.objectType(shape) ==
-                                                    "nurbsCurve"):
-
-        # set the default values for a nurbs node type
-        shape_attributes["points"] = "controlPoints"
-        shape_attributes["input"] = "create"
-        shape_attributes["output"] = "local"
-        shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
-
-    return shape_attributes
-
-
 def is_lock_attribute(element, attribute):
     """ Returns if the given attribute on the element is locked
 
@@ -281,6 +329,25 @@ def is_lock_attribute(element, attribute):
     """
 
     return cmds.getAttr("{}.{}".format(element, attribute), lock=True)
+
+
+def is_matching_type(source, target):
+    """ Checks if the source and target shape type matches
+
+    :param source: source shape node
+    :type source: string
+
+    :param target: target shape node
+    :type target: string
+
+    :return: If source and target matches or not
+    :rtype: bool
+    """
+
+    if cmds.objectType(source) == cmds.objectType(target):
+        return True
+    else:
+        return False
 
 
 def is_maya_batch():
