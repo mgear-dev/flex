@@ -19,7 +19,9 @@ from mgear.flex.decorators import finished_running
 from mgear.flex.decorators import set_focus
 from mgear.flex.flex_widget import FLEX_UI_NAME
 from mgear.flex.flex_widget import FlexDialog
+from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import get_transform_selection
+from mgear.flex.query import is_matching_type
 from mgear.flex.query import is_maya_batch
 from mgear.flex.query import is_valid_group
 from mgear.flex.update import update_rig
@@ -247,6 +249,26 @@ class Flex(object):
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
         return wrapInstance(long(maya_window), QtWidgets.QMainWindow)
 
+    def analyze_groups(self, update_ui=False):
+        """ Scans the shapes inside the source and target group
+
+        This function will query each source and corresponding target shape
+        checking if their type, vertices count and bounding box matches
+
+        :param update_ui: whether or not the analyze ui should be updated
+        :type: bool
+        """
+
+        # gets the matching shapes
+        matching_shapes = get_matching_shapes_from_group(source, target)
+
+        mismatched_types = []
+
+        for shape in matching_shapes:
+            value = is_matching_type(shape, matching_shapes[shape])
+
+        return None
+
     @set_focus
     def launch(self):
         """ Displays the user interface
@@ -287,6 +309,9 @@ class Flex(object):
         # initialise analyze ui and displays it
         self.analyze_ui = FlexAnalyzeDialog(self.ui)
         self.analyze_ui.show()
+
+        # analyse the groups
+        self.analyze_groups(update_ui=True)
 
     @property
     def source_group(self):
