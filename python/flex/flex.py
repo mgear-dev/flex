@@ -13,16 +13,15 @@ from PySide2 import QtWidgets
 from maya import OpenMayaUI
 from shiboken2 import wrapInstance
 
+from mgear.flex.analyze_widget import FLEX_ANALYZE_NAME
+from mgear.flex.analyze_widget import FlexAnalyzeDialog
 from mgear.flex.decorators import finished_running
 from mgear.flex.decorators import set_focus
-from mgear.flex.query import get_matching_shapes
-from mgear.flex.query import get_prefix_less_dict
-from mgear.flex.query import get_shapes_from_group
+from mgear.flex.flex_widget import FLEX_UI_NAME
+from mgear.flex.flex_widget import FlexDialog
 from mgear.flex.query import get_transform_selection
 from mgear.flex.query import is_maya_batch
 from mgear.flex.query import is_valid_group
-from mgear.flex.analyze_widget import FlexAnalyzeDialog
-from mgear.flex.flex_widget import FlexDialog
 from mgear.flex.update import update_rig
 
 
@@ -41,12 +40,6 @@ class Flex(object):
         self.__target_group = None
         self.__user_attributes = True
 
-        # initialise Flex user interface
-        self.ui = FlexDialog(self.__warp_maya_window())
-
-        # connect user interface signals
-        self.__setup_ui_signals()
-
     def __check_source_and_target_properties(self):
         """ Raises ValueError if source_group and target_group are not set
         """
@@ -59,22 +52,6 @@ class Flex(object):
             raise ValueError(message)
 
         return
-
-    def __property_check(self, value):
-        """ Flex properties check
-
-        :param value: value to check
-        :type value: type
-        """
-
-        if value and not is_valid_group(value):
-            raise ValueError("The given group ({}) is not a valid Maya "
-                             "transform node or it simply doesn't exist on "
-                             " your current Maya session".format(value))
-
-        if self.source_group == self.target_group and not value:
-            raise ValueError("The given source and target objects are the same"
-                             ". Nothing to update!")
 
     def __gather_ui_options(self):
         """ Gathers all the UI execution options available in a dict
@@ -110,6 +87,62 @@ class Flex(object):
             self.ui.transformed_hold_check.isChecked())
 
         return ui_options
+
+    @staticmethod
+    def __kill_analyze_instance():
+        """ Kills flex analyze ui instance
+        """
+
+        # maya window widget
+        maya_ui = Flex.__warp_maya_window()
+
+        # go through main window's children to find any previous instances
+        for qt_object in maya_ui.children():
+            if qt_object.objectName() == FLEX_UI_NAME:
+                for child in qt_object.children():
+                    if child.objectName() == FLEX_ANALYZE_NAME:
+                        Flex.__kill_widget(child)
+
+    @staticmethod
+    def __kill_flex_instance():
+        """ Kills flex ui instance
+        """
+
+        # maya window widget
+        maya_ui = Flex.__warp_maya_window()
+
+        # go through main window's children to find any previous instances
+        for qt_object in maya_ui.children():
+            if qt_object.objectName() == FLEX_UI_NAME:
+                Flex.__kill_widget(qt_object)
+
+    @staticmethod
+    def __kill_widget(widget_object):
+        """ Kills the given qt widget object
+
+        :param widget_object: The qt widget object to destroy
+        :type widget_object: QtWidget.QtWidget
+        """
+
+        widget_object.setParent(None)
+        widget_object.deleteLater()
+        del(widget_object)
+
+    def __property_check(self, value):
+        """ Flex properties check
+
+        :param value: value to check
+        :type value: type
+        """
+
+        if value and not is_valid_group(value):
+            raise ValueError("The given group ({}) is not a valid Maya "
+                             "transform node or it simply doesn't exist on "
+                             " your current Maya session".format(value))
+
+        if self.source_group == self.target_group and not value:
+            raise ValueError("The given source and target objects are the same"
+                             ". Nothing to update!")
 
     def __repr__(self):
         return "{}".format(self.__class__)
@@ -179,7 +212,7 @@ class Flex(object):
             lambda: self.__set_text_edits(self.ui.target_text))
 
         # analyse button
-        self.ui.analyse_button.clicked.connect(self.analyse_rig)
+        self.ui.analyse_button.clicked.connect(self.show_analyse)
 
         # run button
         self.ui.run_button.clicked.connect(self.update_rig)
@@ -191,9 +224,13 @@ class Flex(object):
         """ Updates the ui content
         """
 
-        if self.ui.isVisible():
-            self.ui.source_text.setText(self.__source_group)
-            self.ui.target_text.setText(self.__target_group)
+        try:
+            if self.ui.isVisible():
+                self.ui.source_text.setText(self.__source_group)
+                self.ui.target_text.setText(self.__target_group)
+
+        except RuntimeError:
+            return
 
     @staticmethod
     def __warp_maya_window():
@@ -210,45 +247,46 @@ class Flex(object):
         maya_window = OpenMayaUI.MQtUtil.mainWindow()
         return wrapInstance(long(maya_window), QtWidgets.QMainWindow)
 
-    def analyse_rig(self):
-        """ Runs a scan of the source and target shapes
-        """
-
-        # checks if groups are set
-        self.__check_source_and_target_properties()
-
-        # Go through main window's children to find any previous instances
-        for obj in self.ui.children():
-            if obj.objectName() == "flex_analyse_qdialog":
-                obj.setParent(None)
-                obj.deleteLater()
-                del(obj)
-
-        self.analyze_ui = FlexAnalyzeDialog(self.ui)
-        self.analyze_ui.show()
-
-        # gets all shapes on source and target
-        source_shapes = get_shapes_from_group(self.source_group)
-        target_shapes = get_shapes_from_group(self.target_group)
-
-        # gets prefix-less shapes
-        sources_dict = get_prefix_less_dict(source_shapes)
-        targets_dict = get_prefix_less_dict(target_shapes)
-
-        # gets the matching shapes
-        matching_shapes = get_matching_shapes(sources_dict, targets_dict)
-
-        for shape in matching_shapes:
-            self.analyze_ui.add_items(shape, matching_shapes[shape])
-
     @set_focus
     def launch(self):
         """ Displays the user interface
         """
 
-        if not is_maya_batch():
-            self.ui.show()
-            self.__update_ui()
+        # if maya is batch return
+        if is_maya_batch():
+            return
+
+        # kill previous Flex ui instances
+        self.__kill_flex_instance()
+
+        # initialise Flex user interface
+        self.ui = FlexDialog(self.__warp_maya_window())
+
+        # connect user interface signals
+        self.__setup_ui_signals()
+
+        # displays ui
+        self.ui.show()
+        self.__update_ui()
+
+    @set_focus
+    def show_analyse(self):
+        """ Runs a scan of the source and target shapes
+        """
+
+        # if maya is batch return
+        if is_maya_batch():
+            return
+
+        # checks if groups are set
+        self.__check_source_and_target_properties()
+
+        # kill previous analyze widgets
+        self.__kill_analyze_instance()
+
+        # initialise analyze ui and displays it
+        self.analyze_ui = FlexAnalyzeDialog(self.ui)
+        self.analyze_ui.show()
 
     @property
     def source_group(self):
