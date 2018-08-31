@@ -284,8 +284,9 @@ class Flex(object):
         self.__property_check(None)
 
         # runs analyze
-        matching_shapes, mismatched_types, mismatched_count, mismatched_bbox = \
-            analyze_groups(source=self.source_group, target=self.target_group)
+        matching_shapes, mismatched_types, mismatched_count, \
+            mismatched_bbox = analyze_groups(source=self.source_group,
+                                             target=self.target_group)
 
         if update_ui:
             [self.analyze_ui.add_item(shape, matching_shapes[shape],
