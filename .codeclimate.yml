@@ -36,4 +36,4 @@ checks:
   similar-code:
       enabled: true
       config:
-        threshold: 20
+        threshold: 30
