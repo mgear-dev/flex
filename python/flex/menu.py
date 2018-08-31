@@ -8,10 +8,11 @@ Flex menu handles adding the Flex menu item inside the Maya mGear menu.
 
 # imports
 from __future__ import absolute_import
+
 from maya import cmds
+
 import mgear
 from mgear.flex.flex import Flex
-from mgear.flex.decorators import clean_instances
 
 
 def install():
@@ -23,7 +24,6 @@ def install():
     cmds.menuItem(label="Flex", command=run)
 
 
-@clean_instances(object_name='flex_qdialog')
 def run(*args, **kwargs):  # @UnusedVariable
     """ Runs Flex Tool
     """

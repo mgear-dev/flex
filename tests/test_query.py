@@ -1,7 +1,7 @@
 
 # imports
 from maya import cmds
-from flex.query import get_shapes_from_elem
+from mgear.flex.query import get_shapes_from_elem
 
 
 def test_get_shapes_from_elem(initialize_maya):  # @UnusedVariable

@@ -9,6 +9,31 @@ plugins:
 
 version: "2"
 checks:
-  similar-code:
+  argument-count:
     config:
-      threshold: 55
+      threshold: 5
+  complex-logic:
+    config:
+      threshold: 4
+  file-lines:
+    config:
+      threshold: 400
+  method-complexity:
+    config:
+      threshold: 5
+  method-count:
+    config:
+      threshold: 30
+  method-lines:
+    config:
+      threshold: 30
+  nested-control-flow:
+    config:
+      threshold: 4
+  return-statements:
+    config:
+      threshold: 4
+  similar-code:
+      enabled: true
+      config:
+        threshold: 50

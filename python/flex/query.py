@@ -1,26 +1,31 @@
 """ flex.query
 
-flex.query module contains functions which allows you to compare content
-of maya transform nodes used as groups.
+flex.query module contains a collection of functions useful for the analyze
+and update functions of Flex
 
 :module: flex.query
 """
 
 # import
 from __future__ import absolute_import
-from __builtin__ import isinstance
+
+import math
 from maya import OpenMaya
 from maya import cmds
+import os
 
-# flex imports
 from mgear.flex.decorators import timer  # @UnusedImport
 
 
+# flex imports
 def get_dependency_node(element):
     """ Returns a Maya MFnDependencyNode from the given element
 
     :param element: Maya node to return a dependency node class object
     :type element: string
+
+    :return: the element in a Maya MFnDependencyNode object
+    :rtype: MFnDependencyNode
     """
 
     # adds the elements into an maya selection list
@@ -36,7 +41,31 @@ def get_dependency_node(element):
     return OpenMaya.MFnDependencyNode(m_object)
 
 
-@timer
+def get_clean_matching_shapes(source, target):
+    """ Returns the prefix-less found shapes under the given groups
+
+    :param source: source group containing shapes in Maya
+    :type source: string
+
+    :param target: target group containing shapes in Maya
+    :type target: string
+
+    :return: The matching target shapes names without prefix
+    :rtype: dict, dict
+    """
+
+    # gets all shapes on source and target
+    source_shapes = get_shapes_from_group(source)
+    target_shapes = get_shapes_from_group(target)
+
+    # gets prefix-less shapes
+    sources_dict = get_prefix_less_dict(source_shapes)
+    targets_dict = get_prefix_less_dict(target_shapes)
+
+    return sources_dict, targets_dict
+
+
+# @timer
 def get_matching_shapes(source_shapes, target_shapes):
     """ Returns the matching shapes
 
@@ -44,10 +73,10 @@ def get_matching_shapes(source_shapes, target_shapes):
     name from the source.
 
     :param source_shapes: sources dictionary containing prefix-less shapes
-    :type group: dict
+    :type source_shapes: dict
 
     :param target: targets dictionary containing prefix-less shapes
-    :type group: dict
+    :type target: dict
 
     :return: The matching target shapes names
     :rtype: dict
@@ -69,6 +98,25 @@ def get_matching_shapes(source_shapes, target_shapes):
                  if s in target_shapes])
 
 
+def get_matching_shapes_from_group(source, target):
+    """ Returns the matching shapes on the given groups
+
+    :param source: source group containing shapes in Maya
+    :type source: string
+
+    :param target: target group containing shapes in Maya
+    :type target: string
+
+    :return: The matching target shapes names
+    :rtype: dict
+    """
+
+    # gets prefix-less shapes
+    sources_dict, targets_dict = get_clean_matching_shapes(source, target)
+
+    return get_matching_shapes(sources_dict, targets_dict)
+
+
 # @timer
 def get_missing_shapes(source_shapes, target_shapes):
     """ Returns the missing shapes
@@ -77,10 +125,10 @@ def get_missing_shapes(source_shapes, target_shapes):
     found on the target.
 
     :param source_shapes: sources dictionary containing prefix-less shapes
-    :type group: dict
+    :type source_shapes: dict
 
     :param target: targets dictionary containing prefix-less shapes
-    :type group: dict
+    :type target: dict
 
     :return: The missing target shapes names
     :rtype: dict
@@ -92,6 +140,36 @@ def get_missing_shapes(source_shapes, target_shapes):
                  if s not in target_shapes])
 
 
+def get_missing_shapes_from_group(source, target):
+    """ Returns the missing shapes from the given source and target group
+
+    :param source: source group containing shapes in Maya
+    :type source: string
+
+    :param target: source group containing shapes in Maya
+    :type target: string
+
+    :return: The missing target shapes names
+    :rtype: dict
+    """
+
+    # gets prefix-less shapes
+    sources_dict, targets_dict = get_clean_matching_shapes(source, target)
+
+    return get_missing_shapes(sources_dict, targets_dict)
+
+
+def get_parent(element):
+    """ Returns the first parent found for the given element
+
+    :param element: A Maya dag node
+    :type element: string
+    """
+
+    return cmds.listRelatives(element, parent=True, fullPath=True,
+                              type="transform")
+
+
 # @timer
 def get_prefix_less_dict(elements):
     """ Returns a dict containing each element with a stripped prefix
@@ -100,7 +178,7 @@ def get_prefix_less_dict(elements):
     the element without the found prefix
 
     :param elements: List of all your shapes
-    :type group: list
+    :type elements: list
 
     :return: The matching prefix-less elements
     :rtype: dict
@@ -114,6 +192,18 @@ def get_prefix_less_dict(elements):
     """
 
     return dict([(n.split("|")[-1].split(":")[-1], n) for n in elements])
+
+
+def get_resources_path():
+    """ Gets the directory path to the resources files
+    """
+
+    file_dir = os.path.dirname(__file__)
+
+    if "\\" in file_dir:
+        file_dir = file_dir.replace("\\", "/")
+
+    return "{}/resources".format(file_dir)
 
 
 # @timer
@@ -133,14 +223,63 @@ def get_shape_orig(shape):
               and stable ways of doing this.
     """
 
+    # gets attributes names
+    attributes = get_shape_type_attributes(shape)
+
     orig_shapes = []
     {orig_shapes.append(n) for n in (cmds.ls(cmds.listHistory(
-        shape + ".inMesh"), type="mesh")) if n != shape}
+        "{}.{}".format(shape, attributes["input"])),
+        type=cmds.objectType(shape))) if n != shape}
 
     if len(orig_shapes) == 0:
         orig_shapes = None
 
     return orig_shapes
+
+
+def get_shape_type_attributes(shape):
+    """ Returns a dict with the attributes names depending on the shape type
+
+    This function returns the points, output, input and axes attributes for
+    the corresponding shape type. Mesh type of nodes will be set as default
+    but nurbs surfaces and nurbs curves are supported too.
+
+    on mesh nodes: points = pnts
+                   output = outMesh
+                   input = inMesh
+                   p_axes = (pntx, pnty, pntz)
+
+    on nurbs nodes: points = controlPoints
+                    output = local
+                    input = create
+                    p_axes = (xValue, yValue, zValue)
+
+    :param shape: maya shape node
+    :type shape: str
+
+    :return: corresponding attributes names
+    :rtype: dict
+    """
+
+    # declares the dict
+    shape_attributes = dict()
+
+    # set the default values for a mesh node type
+    shape_attributes["points"] = "pnts"
+    shape_attributes["input"] = "inMesh"
+    shape_attributes["output"] = "outMesh"
+    shape_attributes["p_axes"] = ("pntx", "pnty", "pntz")
+
+    if cmds.objectType(shape) == "nurbsSurface" or (cmds.objectType(shape) ==
+                                                    "nurbsCurve"):
+
+        # set the default values for a nurbs node type
+        shape_attributes["points"] = "controlPoints"
+        shape_attributes["input"] = "create"
+        shape_attributes["output"] = "local"
+        shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
+
+    return shape_attributes
 
 
 # @timer
@@ -152,17 +291,19 @@ def get_shapes_from_group(group):
 
     :return: list of shapes objects
     :rtype: list str
-
-    .. important:: only mesh shapes are returned for now
     """
 
-    # checks if exists inside maya scene
-    if not cmds.objExists(group):
-        raise RuntimeError("Given element {} does not exists.".format(group))
+    shapes = []
 
     # gets shapes inside the given group
-    shapes = cmds.ls(group, dagObjects=True, noIntermediate=True,
-                     exactType=("mesh"))
+    shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
+                          exactType=("mesh")) or [])
+
+    shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
+                          exactType=("nurbsCurve")) or [])
+
+    shapes.extend(cmds.ls(group, dagObjects=True, noIntermediate=True,
+                          exactType=("nurbsSurface"))or [])
 
     if not shapes:
         raise ValueError("No shape(s) found under the given group: '{}'"
@@ -185,15 +326,24 @@ def get_transform_selection():
     selection = cmds.ls(selection=True, dagObjects=True, type='transform',
                         flatten=True, allPaths=True)
 
-    if len(selection) > 1:
+    if len(selection) >= 1:
         selection = selection[0]
 
-    # checks if the selection is a list type variable
-    if isinstance(selection, list):
-        return selection[0]
+    return selection or None
 
-    else:
-        return selection or None
+
+def get_vertice_count(shape):
+    """ Returns the number of vertices for the given shape
+
+    :param shape: The maya shape node
+    :type shape: string
+
+    :return: The number of vertices found on shape
+    :rtype: int
+    """
+
+    return len(cmds.ls("{}.{}[*]".format(shape, get_shape_type_attributes(
+        shape)["points"]), flatten=True))
 
 
 def is_lock_attribute(element, attribute):
@@ -210,6 +360,82 @@ def is_lock_attribute(element, attribute):
     """
 
     return cmds.getAttr("{}.{}".format(element, attribute), lock=True)
+
+
+def is_matching_bouding_box(source, target, tolerance=0.001):
+    """ Checks if the source and target shape have the same bounding box
+
+    :param source: source shape node
+    :type source: string
+
+    :param target: target shape node
+    :type target: string
+
+    :param tolerance: difference tolerance allowed. Default 0.001
+    :type tolerance: float
+
+    :return: If source and target matches their bounding box
+    :rtype: bool
+    """
+
+    # get min bounding box vectors
+    src_min = cmds.getAttr("{}.boundingBoxMin".format(source))[0]
+    tgt_min = cmds.getAttr("{}.boundingBoxMin".format(target))[0]
+
+    # get max bounding box vectors
+    src_max = cmds.getAttr("{}.boundingBoxMax".format(source))[0]
+    tgt_max = cmds.getAttr("{}.boundingBoxMax".format(target))[0]
+
+    # vectors length
+    src_min_mag = math.sqrt(sum(v ** 2 for v in src_min))
+    tgt_min_mag = math.sqrt(sum(v ** 2 for v in tgt_min))
+    src_max_mag = math.sqrt(sum(v ** 2 for v in src_max))
+    tgt_max_mag = math.sqrt(sum(v ** 2 for v in tgt_max))
+
+    if abs(tgt_min_mag - src_min_mag) > tolerance:
+        return False
+    elif abs(tgt_max_mag - src_max_mag) > tolerance:
+        return False
+    else:
+        return True
+
+
+def is_matching_count(source, target):
+    """ Checks if the source and target shape have the same amount of vertices
+
+    :param source: source shape node
+    :type source: string
+
+    :param target: target shape node
+    :type target: string
+
+    :return: If source and target matches vertices count or not
+    :rtype: bool
+    """
+
+    if get_vertice_count(source) == get_vertice_count(target):
+        return True
+    else:
+        return False
+
+
+def is_matching_type(source, target):
+    """ Checks if the source and target shape type matches
+
+    :param source: source shape node
+    :type source: string
+
+    :param target: target shape node
+    :type target: string
+
+    :return: If source and target matches or not
+    :rtype: bool
+    """
+
+    if cmds.objectType(source) == cmds.objectType(target):
+        return True
+    else:
+        return False
 
 
 def is_maya_batch():

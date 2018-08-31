@@ -7,7 +7,11 @@ Contains the Flex user interface
 """
 
 # imports
-from PySide2 import QtWidgets, QtGui
+from PySide2 import QtWidgets, QtCore
+from mgear.flex.colors import RED, GREEN, BLUE, YELLOW
+
+# flex ui name
+FLEX_UI_NAME = "flex_qdialog"
 
 
 class FlexDialog(QtWidgets.QDialog):
@@ -25,10 +29,12 @@ class FlexDialog(QtWidgets.QDialog):
         super(FlexDialog, self).__init__(parent=parent)
 
         # sets window rules
-        self.setObjectName('flex_qdialog')
+        self.setObjectName(FLEX_UI_NAME)
         self.setWindowTitle("mGear: Flex (rig updater)")
         self.setStyleSheet(self.__style_sheet())
         self.setMinimumWidth(350)
+        self.setMinimumHeight(100)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         # creates widgets
         self.layout_widgets()
@@ -55,7 +61,14 @@ class FlexDialog(QtWidgets.QDialog):
                  "QGroupBox::title{"
                  "subcontrol-origin: margin;"
                  "subcontrol-position: top center;"
-                 "padding:0px 10px;}")
+                 "padding:0px 10px;}"
+                 "QHeaderView{"
+                 "border:0px;"
+                 "padding: 0px;"
+                 "margin: 0px;}"
+                 "QTableView{"
+                 "margin:10px;"
+                 "padding:0px;}")
 
         return style
 
@@ -82,10 +95,6 @@ class FlexDialog(QtWidgets.QDialog):
         """ Creates the source and target widgets area
         """
 
-        # colours
-        blue = QtGui.QColor(35, 140, 160)
-        yellow = QtGui.QColor(250, 200, 120)
-
         # create layout
         grid_layout = QtWidgets.QGridLayout()
 
@@ -93,22 +102,30 @@ class FlexDialog(QtWidgets.QDialog):
         group_box = QtWidgets.QGroupBox()
         group_box.setTitle("MODEL GROUPS")
         group_box.setLayout(grid_layout)
+        group_box.setFixedHeight(80)
+        group_box.setMinimumHeight(0)
 
         # source widgets
         self.source_text = QtWidgets.QLineEdit()
         self.source_text.setObjectName("source_qlineedit")
         self.source_text.setPlaceholderText("source group")
+        self.source_text.setStatusTip(
+            "Type the name of your source group here")
         self.add_source_button = QtWidgets.QPushButton("<--  source")
         self.add_source_button.setObjectName("source_qpushbutton")
-        self.add_source_button.setPalette(yellow)
+        self.add_source_button.setPalette(YELLOW)
+        self.add_source_button.setStatusTip("Add selected source group")
 
         # target widgets
         self.target_text = QtWidgets.QLineEdit()
         self.target_text.setObjectName("target_qlineedit")
         self.target_text.setPlaceholderText("target group")
+        self.target_text.setStatusTip(
+            "Type the name of your target group here")
         self.add_target_button = QtWidgets.QPushButton("<--  target")
         self.add_target_button.setObjectName("target_qpushbutton")
-        self.add_target_button.setPalette(blue)
+        self.add_target_button.setPalette(BLUE)
+        self.add_target_button.setStatusTip("Add selected target group")
 
         # adds widgets to layout
         grid_layout.addWidget(self.source_text, 0, 0, 1, 2)
@@ -123,10 +140,6 @@ class FlexDialog(QtWidgets.QDialog):
         """ Creates the run widgets area
         """
 
-        # colours
-        red = QtGui.QColor(250, 110, 90)
-        green = QtGui.QColor(35, 160, 140)
-
         # create layout
         vertical_layout = QtWidgets.QVBoxLayout()
 
@@ -134,14 +147,18 @@ class FlexDialog(QtWidgets.QDialog):
         group_box = QtWidgets.QGroupBox()
         group_box.setTitle("RUN")
         group_box.setLayout(vertical_layout)
+        group_box.setFixedHeight(80)
 
         # analyse widget
         self.analyse_button = QtWidgets.QPushButton("Analyze")
-        self.analyse_button.setPalette(green)
+        self.analyse_button.setPalette(GREEN)
+        self.analyse_button.setStatusTip(
+            "Hit to analyze the source and target shapes")
 
         # run widget
         self.run_button = QtWidgets.QPushButton("--> Update shapes <--")
-        self.run_button.setPalette(red)
+        self.run_button.setPalette(RED)
+        self.run_button.setStatusTip("Hit to execute updating your rig shapes")
 
         # adds widget to layout
         vertical_layout.addWidget(self.analyse_button)
@@ -160,6 +177,7 @@ class FlexDialog(QtWidgets.QDialog):
         group_box = QtWidgets.QGroupBox()
         group_box.setTitle("OPTIONS")
         group_box.setLayout(grid_layout)
+        group_box.setMinimumHeight(0)
 
         # user defined attributes
         self.user_attributes_check = QtWidgets.QCheckBox("User Attributes")
@@ -179,14 +197,41 @@ class FlexDialog(QtWidgets.QDialog):
         self.vertex_colours_check.setChecked(True)
         self.vertex_colours_check.setEnabled(False)
 
+        # Transformed & Deformed
+        t_n_d_widget = QtWidgets.QWidget()
+        t_n_d_layout = QtWidgets.QHBoxLayout()
+        t_n_d_layout.setContentsMargins(0, 0, 0, 0)
+        t_n_d_widget.setContentsMargins(0, 0, 0, 0)
+        t_n_d_widget.setLayout(t_n_d_layout)
+
         # deformed
-        self.deformed_check = QtWidgets.QCheckBox("Deformed")
+        self.deformed_check = QtWidgets.QGroupBox("Deformed")
+        self.deformed_check.setCheckable(True)
         self.deformed_check.setChecked(True)
 
         # transformed
-        self.transformed_check = QtWidgets.QCheckBox("Transformed")
-        self.transformed_check.setChecked(False)
-        self.transformed_check.setEnabled(False)
+        self.transformed_check = QtWidgets.QGroupBox("Transformed")
+        self.transformed_check.setCheckable(True)
+        self.transformed_check.setChecked(True)
+        transformed_layout = QtWidgets.QVBoxLayout()
+        transformed_layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.transformed_check.setLayout(transformed_layout)
+
+        # hold position values
+        self.transformed_hold_check = QtWidgets.QRadioButton(
+            "Hold position values")
+        self.transformed_hold_check.setChecked(True)
+        # new position values
+        self.transformed_new_check = QtWidgets.QRadioButton(
+            "New position values")
+
+        # add widgets to transformed group box
+        transformed_layout.addWidget(self.transformed_hold_check)
+        transformed_layout.addWidget(self.transformed_new_check)
+
+        # add to layout
+        t_n_d_layout.addWidget(self.transformed_check)
+        t_n_d_layout.addWidget(self.deformed_check)
 
         # object display
         self.display_attributes_check = QtWidgets.QCheckBox(
@@ -202,11 +247,10 @@ class FlexDialog(QtWidgets.QDialog):
         grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
         grid_layout.addWidget(self.plugin_attributes_check, 0, 1, 1, 1)
         grid_layout.addWidget(self.render_attributes_check, 0, 2, 1, 1)
-        grid_layout.addWidget(self.deformed_check, 1, 0, 1, 1)
-        grid_layout.addWidget(self.transformed_check, 1, 1, 1, 1)
         grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
-        grid_layout.addWidget(self.display_attributes_check, 2, 0, 1, 1)
-        grid_layout.addWidget(self.component_attributes_check, 2, 1, 1, 1)
+        grid_layout.addWidget(self.display_attributes_check, 1, 0, 1, 1)
+        grid_layout.addWidget(self.component_attributes_check, 1, 1, 1, 1)
+        grid_layout.addWidget(t_n_d_widget, 2, 0, 1, 3)
 
         # adds the group box widget to the widgets_layout
         self.widgets_layout.addWidget(group_box)
