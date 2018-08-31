@@ -147,5 +147,3 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         self.table_widget.setItem(0, 2, match_item)
         self.table_widget.setItem(0, 3, count_item)
         self.table_widget.setItem(0, 4, bbox_item)
-
-        return source_item, target_item
