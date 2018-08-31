@@ -41,7 +41,31 @@ def get_dependency_node(element):
     return OpenMaya.MFnDependencyNode(m_object)
 
 
-@timer
+def get_clean_matching_shapes(source, target):
+    """ Returns the prefix-less found shapes under the given groups
+
+    :param source: source group containing shapes in Maya
+    :type source: string
+
+    :param target: target group containing shapes in Maya
+    :type target: string
+
+    :return: The matching target shapes names without prefix
+    :rtype: dict, dict
+    """
+
+    # gets all shapes on source and target
+    source_shapes = get_shapes_from_group(source)
+    target_shapes = get_shapes_from_group(target)
+
+    # gets prefix-less shapes
+    sources_dict = get_prefix_less_dict(source_shapes)
+    targets_dict = get_prefix_less_dict(target_shapes)
+
+    return sources_dict, targets_dict
+
+
+# @timer
 def get_matching_shapes(source_shapes, target_shapes):
     """ Returns the matching shapes
 
@@ -87,13 +111,8 @@ def get_matching_shapes_from_group(source, target):
     :rtype: dict
     """
 
-    # gets all shapes on source and target
-    source_shapes = get_shapes_from_group(source)
-    target_shapes = get_shapes_from_group(target)
-
     # gets prefix-less shapes
-    sources_dict = get_prefix_less_dict(source_shapes)
-    targets_dict = get_prefix_less_dict(target_shapes)
+    sources_dict, targets_dict = get_clean_matching_shapes(source, target)
 
     return get_matching_shapes(sources_dict, targets_dict)
 
@@ -134,13 +153,8 @@ def get_missing_shapes_from_group(source, target):
     :rtype: dict
     """
 
-    # gets all shapes on source and target
-    source_shapes = get_shapes_from_group(source)
-    target_shapes = get_shapes_from_group(target)
-
     # gets prefix-less shapes
-    sources_dict = get_prefix_less_dict(source_shapes)
-    targets_dict = get_prefix_less_dict(target_shapes)
+    sources_dict, targets_dict = get_clean_matching_shapes(source, target)
 
     return get_missing_shapes(sources_dict, targets_dict)
 
