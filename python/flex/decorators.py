@@ -8,10 +8,7 @@ decorators.
 """
 
 # imports
-from PySide2 import QtWidgets
-from maya import OpenMayaUI
 from maya import cmds
-from shiboken2 import wrapInstance
 import time
 
 
@@ -37,46 +34,6 @@ def finished_running(function):
         return function_exec
 
     return wrapper_function
-
-
-def clean_instances(object_name):
-    """ Kill an already existing Flex ui
-
-    Checks if a existing instance of the Flex UI is open and kills it.
-
-    :param object_name: qt widget object name
-    :type object_name: str
-    """
-
-    def kill_flex_ui(function):
-        """ Search from previous flex UI and kills them
-
-        :param function: your decorated function
-        :type function: function
-
-        :return: your decorated function
-        :rtype: function
-        """
-
-        def wrapper_function(*args, **kwars):
-            # finds Flex widget
-            widget = OpenMayaUI.MQtUtil.findWindow(object_name)
-
-            if not widget:
-                return
-
-            # go through flex widgets to find analyze widget
-            qt_object = wrapInstance(long(widget), QtWidgets.QDialog)
-            qt_object.setParent(None)
-            qt_object.deleteLater()
-            del(qt_object)
-
-            # runs decorated function
-            function_exec = function(*args, **kwars)
-
-            return function_exec
-        return wrapper_function
-    return kill_flex_ui
 
 
 def set_focus(function):
