@@ -75,7 +75,7 @@ def get_matching_shapes(source_shapes, target_shapes):
 
 
 def get_matching_shapes_from_group(source, target):
-    """ Returns the matching shapes from the given source and target group
+    """ Returns the matching shapes on the given groups
 
     :param source: source group containing shapes in Maya
     :type source: string
