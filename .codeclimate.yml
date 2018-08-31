@@ -33,3 +33,7 @@ checks:
   return-statements:
     config:
       threshold: 4
+  similar-code:
+      enabled: true
+      config:
+        threshold: 10
