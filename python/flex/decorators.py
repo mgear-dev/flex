@@ -59,18 +59,17 @@ def clean_instances(object_name):
         """
 
         def wrapper_function(*args, **kwars):
-            # checks for Flex ui instance
-            maya_main_window = OpenMayaUI.MQtUtil.mainWindow()
-            maya_main_window_widget = wrapInstance(long(maya_main_window),
-                                                   QtWidgets.QMainWindow)
+            # finds Flex widget
+            widget = OpenMayaUI.MQtUtil.findWindow(object_name)
 
-            # Go through main window's children to find any previous instances
-            for obj in maya_main_window_widget.children():
-                if isinstance(obj, QtWidgets.QDialog) and (obj.objectName() ==
-                                                           object_name):
-                    obj.setParent(None)
-                    obj.deleteLater()
-                    del(obj)
+            if not widget:
+                return
+
+            # go through flex widgets to find analyze widget
+            qt_object = wrapInstance(long(widget), QtWidgets.QDialog)
+            qt_object.setParent(None)
+            qt_object.deleteLater()
+            del(qt_object)
 
             # runs decorated function
             function_exec = function(*args, **kwars)
