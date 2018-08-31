@@ -95,28 +95,31 @@ class Flex(object):
         """ Kills flex analyze ui instance
         """
 
-        # maya window widget
-        maya_ui = Flex.__warp_maya_window()
+        # finds Flex widget
+        widget = OpenMayaUI.MQtUtil.findWindow(FLEX_UI_NAME)
 
-        # go through main window's children to find any previous instances
-        for qt_object in maya_ui.children():
-            if qt_object.objectName() == FLEX_UI_NAME:
-                for child in qt_object.children():
-                    if child.objectName() == FLEX_ANALYZE_NAME:
-                        Flex.__kill_widget(child)
+        if not widget:
+            return
+
+        # go through flex widgets to find analyze widget
+        qt_object = wrapInstance(long(widget), QtWidgets.QDialog)
+        for child in qt_object.children():
+            if child.objectName() == FLEX_ANALYZE_NAME:
+                Flex.__kill_widget(child)
 
     @staticmethod
     def __kill_flex_instance():
         """ Kills flex ui instance
         """
 
-        # maya window widget
-        maya_ui = Flex.__warp_maya_window()
+        # finds Flex widget
+        widget = OpenMayaUI.MQtUtil.findWindow(FLEX_UI_NAME)
 
-        # go through main window's children to find any previous instances
-        for qt_object in maya_ui.children():
-            if qt_object.objectName() == FLEX_UI_NAME:
-                Flex.__kill_widget(qt_object)
+        if not widget:
+            return
+
+        qt_object = wrapInstance(long(widget), QtWidgets.QDialog)
+        Flex.__kill_widget(qt_object)
 
     @staticmethod
     def __kill_widget(widget_object):
