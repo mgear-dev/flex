@@ -1,16 +1,19 @@
 """ flex.query
 
-flex.query module contains functions which allows you to compare content
-of maya transform nodes used as groups.
+flex.query module contains a collection of functions useful for the analyze
+and update functions of Flex
 
 :module: flex.query
 """
 
 # import
 from __future__ import absolute_import
+
+import math
 from maya import OpenMaya
 from maya import cmds
 import os
+
 from mgear.flex.decorators import timer  # @UnusedImport
 
 
@@ -315,6 +318,20 @@ def get_transform_selection():
     return selection or None
 
 
+def get_vertice_count(shape):
+    """ Returns the number of vertices for the given shape
+
+    :param shape: The maya shape node
+    :type shape: string
+
+    :return: The number of vertices found on shape
+    :rtype: int
+    """
+
+    return len(cmds.ls("{}.{}[*]".format(shape, get_shape_type_attributes(
+        shape)["points"]), flatten=True))
+
+
 def is_lock_attribute(element, attribute):
     """ Returns if the given attribute on the element is locked
 
@@ -329,6 +346,63 @@ def is_lock_attribute(element, attribute):
     """
 
     return cmds.getAttr("{}.{}".format(element, attribute), lock=True)
+
+
+def is_matching_bouding_box(source, target, tolerance=0.001):
+    """ Checks if the source and target shape have the same bounding box
+
+    :param source: source shape node
+    :type source: string
+
+    :param target: target shape node
+    :type target: string
+
+    :param tolerance: difference tolerance allowed. Default 0.001
+    :type tolerance: float
+
+    :return: If source and target matches their bounding box
+    :rtype: bool
+    """
+
+    # get min bounding box vectors
+    src_min = cmds.getAttr("{}.boundingBoxMin".format(source))[0]
+    tgt_min = cmds.getAttr("{}.boundingBoxMin".format(target))[0]
+
+    # get max bounding box vectors
+    src_max = cmds.getAttr("{}.boundingBoxMax".format(source))[0]
+    tgt_max = cmds.getAttr("{}.boundingBoxMax".format(target))[0]
+
+    # vectors length
+    src_min_mag = math.sqrt(sum(v ** 2 for v in src_min))
+    tgt_min_mag = math.sqrt(sum(v ** 2 for v in tgt_min))
+    src_max_mag = math.sqrt(sum(v ** 2 for v in src_max))
+    tgt_max_mag = math.sqrt(sum(v ** 2 for v in tgt_max))
+
+    if abs(tgt_min_mag - src_min_mag) > tolerance:
+        return False
+    elif abs(tgt_max_mag - src_max_mag) > tolerance:
+        return False
+    else:
+        return True
+
+
+def is_matching_count(source, target):
+    """ Checks if the source and target shape have the same amount of vertices
+
+    :param source: source shape node
+    :type source: string
+
+    :param target: target shape node
+    :type target: string
+
+    :return: If source and target matches vertices count or not
+    :rtype: bool
+    """
+
+    if get_vertice_count(source) == get_vertice_count(target):
+        return True
+    else:
+        return False
 
 
 def is_matching_type(source, target):
