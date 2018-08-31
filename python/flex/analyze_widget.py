@@ -9,7 +9,6 @@ Contains the Flex Analyze interface
 
 # imports
 from PySide2 import QtWidgets, QtGui, QtCore
-
 from mgear.flex.colors import YELLOW
 from mgear.flex.query import get_resources_path
 
@@ -37,6 +36,15 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         self.setWindowTitle("mGear: Flex analyze shapes")
         self.setMinimumWidth(500)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        # creates the icons
+        self.green_icon = QtGui.QIcon()
+        image = QtGui.QPixmap("{}/green.png".format(get_resources_path()))
+        self.green_icon.addPixmap(image)
+
+        self.red_icon = QtGui.QIcon()
+        image = QtGui.QPixmap("{}/red.png".format(get_resources_path()))
+        self.red_icon.addPixmap(image)
 
         # creates layout
         layout = QtWidgets.QVBoxLayout()
@@ -83,7 +91,7 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         # hides vertical header
         self.table_widget.verticalHeader().setVisible(False)
 
-    def add_items(self, source, target):
+    def add_item(self, source, target, match, count, bbox):
         """ Handles adding items to the table widget
 
         :param source: the source shape element
@@ -91,16 +99,10 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
 
         :param target: the target corresponding shape element matching source
         :type target: string
+
+        :param match: whether the type matches
+        :type match: bool
         """
-
-        # creates the icons
-        green_icon = QtGui.QIcon()
-        image = QtGui.QPixmap("{}/green.png".format(get_resources_path()))
-        green_icon.addPixmap(image)
-
-        red_icon = QtGui.QIcon()
-        image = QtGui.QPixmap("{}/red.png".format(get_resources_path()))
-        red_icon.addPixmap(image)
 
         # source item
         source_item = QtWidgets.QTableWidgetItem()
@@ -117,19 +119,33 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
                              QtCore.Qt.ItemIsEnabled)
 
         # type item
-        type_item = QtWidgets.QTableWidgetItem()
-        type_item.setIcon(green_icon)
-        type_item.setFlags(QtCore.Qt.ItemIsEnabled)
+        match_item = QtWidgets.QTableWidgetItem()
+        match_item.setIcon(self.green_icon)
+        if source in match:
+            match_item.setIcon(self.red_icon)
+        match_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
-        # type item
+        # count item
         count_item = QtWidgets.QTableWidgetItem()
-        count_item.setIcon(red_icon)
+        count_item.setIcon(self.green_icon)
+        if source in count:
+            count_item.setIcon(self.red_icon)
         count_item.setFlags(QtCore.Qt.ItemIsEnabled)
+
+        # bounding box item
+        bbox_item = QtWidgets.QTableWidgetItem()
+        bbox_item.setIcon(self.green_icon)
+        if source in bbox:
+            bbox_item.setIcon(self.red_icon)
+        bbox_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
         # insert items
         self.table_widget.insertRow(0)
         self.table_widget.setRowHeight(0, 19)
         self.table_widget.setItem(0, 0, source_item)
         self.table_widget.setItem(0, 1, target_item)
-        self.table_widget.setItem(0, 2, type_item)
+        self.table_widget.setItem(0, 2, match_item)
         self.table_widget.setItem(0, 3, count_item)
+        self.table_widget.setItem(0, 4, bbox_item)
+
+        return source_item, target_item
