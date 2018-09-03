@@ -72,6 +72,20 @@ class FlexDialog(QtWidgets.QDialog):
 
         return style
 
+    def deformed_widgets(self):
+        """ Creates the deformed options widgets
+        """
+
+        # deformed main group box
+        self.deformed_check = QtWidgets.QGroupBox("Deformed")
+        self.deformed_check.setCheckable(True)
+        self.deformed_check.setChecked(True)
+
+        # creates the layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.deformed_check.setLayout(layout)
+
     def layout_widgets(self):
         """ Creates the general UI layouts
         """
@@ -136,6 +150,73 @@ class FlexDialog(QtWidgets.QDialog):
         # adds the group box widget to the widgets_layout
         self.widgets_layout.addWidget(group_box)
 
+    def options_widgets(self):
+        """ Create the options widget area
+        """
+        # create layout
+        grid_layout = QtWidgets.QGridLayout()
+
+        # creates group box
+        group_box = QtWidgets.QGroupBox()
+        group_box.setTitle("OPTIONS")
+        group_box.setLayout(grid_layout)
+        group_box.setMinimumHeight(0)
+
+        # user defined attributes
+        self.user_attributes_check = QtWidgets.QCheckBox("User Attributes")
+        self.user_attributes_check.setChecked(True)
+
+        # plug-in attributes
+        self.plugin_attributes_check = QtWidgets.QCheckBox("Plug-in "
+                                                           "Attributes")
+        self.plugin_attributes_check.setChecked(False)
+
+        # render attributes
+        self.render_attributes_check = QtWidgets.QCheckBox("Render Attributes")
+        self.render_attributes_check.setChecked(True)
+
+        # vertex colours
+        self.vertex_colours_check = QtWidgets.QCheckBox("Vertex Colours")
+        self.vertex_colours_check.setChecked(True)
+        self.vertex_colours_check.setEnabled(False)
+
+        # Transformed & Deformed layout
+        t_n_d_widget = QtWidgets.QWidget()
+        t_n_d_layout = QtWidgets.QHBoxLayout()
+        t_n_d_layout.setContentsMargins(0, 0, 0, 0)
+        t_n_d_widget.setContentsMargins(0, 0, 0, 0)
+        t_n_d_widget.setLayout(t_n_d_layout)
+
+        # creates transformed and deformed widgets
+        self.transformed_widgets()
+        self.deformed_widgets()
+
+        # add to layout
+        t_n_d_layout.addWidget(self.transformed_check)
+        t_n_d_layout.addWidget(self.deformed_check)
+
+        # object display
+        self.display_attributes_check = QtWidgets.QCheckBox(
+            "Object Display Attrs.")
+        self.display_attributes_check.setChecked(False)
+
+        # component display
+        self.component_attributes_check = QtWidgets.QCheckBox(
+            "Component Display Attrs.")
+        self.component_attributes_check.setChecked(False)
+
+        # adds widgets to layout
+        grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
+        grid_layout.addWidget(self.plugin_attributes_check, 0, 1, 1, 1)
+        grid_layout.addWidget(self.render_attributes_check, 0, 2, 1, 1)
+        grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
+        grid_layout.addWidget(self.display_attributes_check, 1, 0, 1, 1)
+        grid_layout.addWidget(self.component_attributes_check, 1, 1, 1, 1)
+        grid_layout.addWidget(t_n_d_widget, 2, 0, 1, 3)
+
+        # adds the group box widget to the widgets_layout
+        self.widgets_layout.addWidget(group_box)
+
     def run_widgets(self):
         """ Creates the run widgets area
         """
@@ -167,55 +248,19 @@ class FlexDialog(QtWidgets.QDialog):
         # adds the group box widget to the widgets_layout
         self.widgets_layout.addWidget(group_box)
 
-    def options_widgets(self):
-        """ Create the options widget area
+    def transformed_widgets(self):
+        """ Creates the transformed options widgets
         """
-        # create layout
-        grid_layout = QtWidgets.QGridLayout()
 
-        # creates group box
-        group_box = QtWidgets.QGroupBox()
-        group_box.setTitle("OPTIONS")
-        group_box.setLayout(grid_layout)
-        group_box.setMinimumHeight(0)
-
-        # user defined attributes
-        self.user_attributes_check = QtWidgets.QCheckBox("User Attributes")
-        self.user_attributes_check.setChecked(True)
-
-        # plug-in attributes
-        self.plugin_attributes_check = QtWidgets.QCheckBox("Plug-in "
-                                                           "Attributes")
-        self.plugin_attributes_check.setChecked(False)
-
-        # render attributes
-        self.render_attributes_check = QtWidgets.QCheckBox("Render Attributes")
-        self.render_attributes_check.setChecked(True)
-
-        # vertex colours
-        self.vertex_colours_check = QtWidgets.QCheckBox("Vertex Colours")
-        self.vertex_colours_check.setChecked(True)
-        self.vertex_colours_check.setEnabled(False)
-
-        # Transformed & Deformed
-        t_n_d_widget = QtWidgets.QWidget()
-        t_n_d_layout = QtWidgets.QHBoxLayout()
-        t_n_d_layout.setContentsMargins(0, 0, 0, 0)
-        t_n_d_widget.setContentsMargins(0, 0, 0, 0)
-        t_n_d_widget.setLayout(t_n_d_layout)
-
-        # deformed
-        self.deformed_check = QtWidgets.QGroupBox("Deformed")
-        self.deformed_check.setCheckable(True)
-        self.deformed_check.setChecked(True)
-
-        # transformed
+        # transformed main group box
         self.transformed_check = QtWidgets.QGroupBox("Transformed")
         self.transformed_check.setCheckable(True)
         self.transformed_check.setChecked(True)
-        transformed_layout = QtWidgets.QVBoxLayout()
-        transformed_layout.setAlignment(QtCore.Qt.AlignHCenter)
-        self.transformed_check.setLayout(transformed_layout)
+
+        # creates the layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.transformed_check.setLayout(layout)
 
         # hold position values
         self.transformed_hold_check = QtWidgets.QRadioButton(
@@ -226,31 +271,6 @@ class FlexDialog(QtWidgets.QDialog):
             "New position values")
 
         # add widgets to transformed group box
-        transformed_layout.addWidget(self.transformed_hold_check)
-        transformed_layout.addWidget(self.transformed_new_check)
-
-        # add to layout
-        t_n_d_layout.addWidget(self.transformed_check)
-        t_n_d_layout.addWidget(self.deformed_check)
-
-        # object display
-        self.display_attributes_check = QtWidgets.QCheckBox(
-            "Object Display Attrs.")
-        self.display_attributes_check.setChecked(False)
-
-        # component display
-        self.component_attributes_check = QtWidgets.QCheckBox(
-            "Component Display Attrs.")
-        self.component_attributes_check.setChecked(False)
-
-        # adds widgets to layout
-        grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
-        grid_layout.addWidget(self.plugin_attributes_check, 0, 1, 1, 1)
-        grid_layout.addWidget(self.render_attributes_check, 0, 2, 1, 1)
-        grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
-        grid_layout.addWidget(self.display_attributes_check, 1, 0, 1, 1)
-        grid_layout.addWidget(self.component_attributes_check, 1, 1, 1, 1)
-        grid_layout.addWidget(t_n_d_widget, 2, 0, 1, 3)
-
-        # adds the group box widget to the widgets_layout
-        self.widgets_layout.addWidget(group_box)
+        layout.addWidget(self.transformed_hold_check)
+        layout.addWidget(self.transformed_new_check)
+        layout.addWidget(self.transformed_new_check)
