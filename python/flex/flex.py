@@ -48,6 +48,7 @@ class Flex(object):
                                  "component_display": False,
                                  "plugin_attributes": False,
                                  "hold_transform_values": True,
+                                 "mismatched_topologies": True,
                                  }
 
     def __check_source_and_target_properties(self):
@@ -77,6 +78,7 @@ class Flex(object):
            * render_attributes
            * plugin_attributes
            * hold_transform_values
+           * mismatched_topologies
         """
 
         # gather ui options
@@ -96,6 +98,8 @@ class Flex(object):
             self.ui.plugin_attributes_check.isChecked())
         ui_options["hold_transform_values"] = (
             self.ui.transformed_hold_check.isChecked())
+        ui_options["mismatched_topologies"] = (
+            self.ui.mismatched_topologies.isChecked())
 
         return ui_options
 

@@ -86,6 +86,13 @@ class FlexDialog(QtWidgets.QDialog):
         layout.setAlignment(QtCore.Qt.AlignHCenter)
         self.deformed_check.setLayout(layout)
 
+        # ignore topology changes
+        self.mismatched_topologies = QtWidgets.QCheckBox(
+            "Mismatched topologies")
+        self.mismatched_topologies.setChecked(True)
+
+        layout.addWidget(self.mismatched_topologies)
+
     def layout_widgets(self):
         """ Creates the general UI layouts
         """

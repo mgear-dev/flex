@@ -18,7 +18,8 @@ from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
 from mgear.flex.decorators import timer
-from mgear.flex.query import get_dependency_node
+from mgear.flex.query import get_dependency_node, is_matching_type, \
+    is_matching_count
 from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import get_missing_shapes_from_group
 from mgear.flex.query import get_parent
@@ -148,7 +149,7 @@ def update_attribute(source, target, attribute_name):
         lock_unlock_attribute(target, attribute_name, True)
 
 
-def update_deformed_shape(source, target):
+def update_deformed_shape(source, target, mismatching_topology=True):
     """ Updates the target shape with the given source shape content
 
     :param source: maya shape node
@@ -168,9 +169,14 @@ def update_deformed_shape(source, target):
 
     logger.info("Deformed shape found: {}".format(target))
 
-    if cmds.objectType(source) != cmds.objectType(target):
+    if not is_matching_type(source, target):
         logger.warning("{} and {} don't have same shape type. passing..."
                        .format(source, target))
+        return
+
+    if not mismatching_topology and not is_matching_count(source, target):
+        logger.warning("{} and {} don't have same shape vertices count."
+                       "passing...".format(source, target))
         return
 
     deform_origin = deform_origin[0]
@@ -237,7 +243,8 @@ def update_rig(source, target, options):
         logger.info("Updating: {}".format(matching_shapes[shape]))
 
         if options["deformed"]:
-            update_deformed_shape(shape, matching_shapes[shape])
+            update_deformed_shape(shape, matching_shapes[shape],
+                                  options["mismatched_topologies"])
 
         if options["transformed"]:
             update_transformed_shape(shape, matching_shapes[shape],
