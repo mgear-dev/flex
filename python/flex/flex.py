@@ -40,6 +40,15 @@ class Flex(object):
         self.__source_group = None
         self.__target_group = None
         self.__user_attributes = True
+        self.__update_options = {"deformed": True,
+                                 "transformed": True,
+                                 "object_display": False,
+                                 "user_attributes": True,
+                                 "render_attributes": True,
+                                 "component_display": False,
+                                 "plugin_attributes": False,
+                                 "hold_transform_values": True,
+                                 }
 
     def __check_source_and_target_properties(self):
         """ Raises ValueError if source_group and target_group are not set
@@ -143,7 +152,7 @@ class Flex(object):
         if value and not is_valid_group(value):
             raise ValueError("The given group ({}) is not a valid Maya "
                              "transform node or it simply doesn't exist on "
-                             " your current Maya session".format(value))
+                             "your current Maya session".format(value))
 
         if self.source_group == self.target_group and not value:
             raise ValueError("The given source and target objects are the same"
@@ -381,11 +390,44 @@ class Flex(object):
         :type value: str
         """
 
+        # check if values are correct
+        self.__property_check(value)
+
         # set value
         self.__target_group = value
 
         # ui update
         self.__update_ui()
+
+    @property
+    def update_options(self):
+        """ Flex update options (property)
+
+        .. note:: This are the default update options
+                  {
+                   "deformed": True,
+                   "transformed": True,
+                   "object_display": False,
+                   "user_attributes": True,
+                   "render_attributes": True,
+                   "component_display": False,
+                   "plugin_attributes": False,
+                   "hold_transform_values": True,
+                  }
+        """
+
+        return self.__update_options
+
+#     @update_options.setter
+#     def update_options(self, value):
+#         """ Setter for the update_options property
+#
+#         :param value: Python dict containing all the update options you want
+#                       to use when updating your rigs model
+#         :type value: dict
+#         """
+#
+#         pass
 
     @finished_running
     def update_rig(self, run_options=None):
@@ -404,11 +446,11 @@ class Flex(object):
         # check if values are correct
         self.__property_check(None)
 
-        #########################
-        # NEED TO CHANGE THIS AND TRY STATEMENT THE UI EXISTANCE
-        #########################
         if not run_options:
-            run_options = self.__gather_ui_options()
+            try:
+                run_options = self.__gather_ui_options()
+            except AttributeError:
+                run_options = self.update_options
 
         # triggers the update
         update_rig(source=self.source_group, target=self.target_group,
