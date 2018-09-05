@@ -17,6 +17,7 @@ from mgear.flex.analyze import analyze_groups
 from mgear.flex.analyze_widget import FLEX_ANALYZE_NAME
 from mgear.flex.analyze_widget import FlexAnalyzeDialog
 from mgear.flex.decorators import finished_running
+from mgear.flex.decorators import hold_selection
 from mgear.flex.decorators import set_focus
 from mgear.flex.flex_widget import FLEX_UI_NAME
 from mgear.flex.flex_widget import FlexDialog
@@ -422,18 +423,8 @@ class Flex(object):
 
         return self.__update_options
 
-#     @update_options.setter
-#     def update_options(self, value):
-#         """ Setter for the update_options property
-#
-#         :param value: Python dict containing all the update options you want
-#                       to use when updating your rigs model
-#         :type value: dict
-#         """
-#
-#         pass
-
     @finished_running
+    @hold_selection
     def update_rig(self, run_options=None):
         """ Launches the rig update process
 
