@@ -157,6 +157,9 @@ def update_deformed_shape(source, target, mismatching_topology=True):
 
     :param target: maya shape node
     :type target: str
+
+    :param mismatching_topology: ignore or not mismatching topologies
+    :type mismatching_topology: bool
     """
 
     logger.info("Update deformed shapes options running...")
@@ -181,8 +184,80 @@ def update_deformed_shape(source, target, mismatching_topology=True):
 
     deform_origin = deform_origin[0]
 
+    if mismatching_topology and not is_matching_count(source, target):
+        update_deformed_mismatching_shape(source, target, deform_origin)
+        return
+
     # update the shape
     update_shape(source, deform_origin)
+
+
+def update_deformed_mismatching_shape(source, target, shape_orig):
+    """ Updates the target shape with the given source shape content
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+
+    :param shape_orig: shape orig on the target shape
+    :type shape_orig: str
+    """
+
+    # gets all deformers used the target shape
+    deformers_list = cmds.findDeformers(target)
+    deformers = {"skinCluster": [], "blendShape": [], "cluster": []}
+
+    # filter the deformers by type
+    for deformer in deformers_list:
+        if cmds.objectType(deformer) == "skinCluster":
+            deformers["skinCluster"].append(deformer)
+        if cmds.objectType(deformer) == "blendShape":
+            deformers["blendShape"].append(deformer)
+        if cmds.objectType(deformer) == "cluster":
+                    deformers["cluster"].append(deformer)
+
+    # return when more than 1 skinCluster node is used on shape
+    if len(deformers["skinCluster"]) > 1:
+        logger.warning("Dual skinning is yet not supported")
+        return
+
+    # gets the skin cluster influences
+    influences = cmds.listConnections("{}.matrix".format(
+        deformers["skinCluster"][0]))
+
+    # creates a duplicate mesh of the target orig shape
+    shape_holder = cmds.createNode("mesh", name="flex_skin_shape_holder")
+    update_shape(shape_orig, shape_holder)
+
+    # backup the skin weights
+    skin_holder = cmds.skinCluster(influences, shape_holder, bindMethod=0,
+                                   obeyMaxInfluences=False, skinMethod=0,
+                                   weightDistribution=0, normalizeWeights=1,
+                                   removeUnusedInfluence=False)
+
+    cmds.copySkinWeights(sourceSkin=deformers["skinCluster"][0],
+                         destinationSkin=skin_holder[0], noMirror=True,
+                         surfaceAssociation="closestComponent",
+                         influenceAssociation=("label", "closestJoint",
+                                               "oneToOne"))
+
+    def _finish_skin():
+        # updates target shape
+        update_shape(source, shape_orig)
+
+        # copy skinning from backup
+        cmds.copySkinWeights(sourceSkin=skin_holder[0],
+                             destinationSkin=deformers["skinCluster"][0],
+                             surfaceAssociation="closestComponent", noMirror=True,
+                             influenceAssociation=("label", "closestJoint",
+                                                   "oneToOne"))
+
+        # deletes the holder
+#         cmds.delete(cmds.listRelatives(shape_holder, parent=True))
+
+    cmds.evalDeferred(_finish_skin)
 
 
 def update_maya_attributes(source, target, attributes):
