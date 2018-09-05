@@ -36,6 +36,30 @@ def finished_running(function):
     return wrapper_function
 
 
+def hold_selection(function):
+    """ Holds the current Maya selection after running the function
+
+    :param function: your decorated function
+    :type function: function
+
+    :return: your decorated function
+    :rtype: function
+    """
+
+    def wrapper_function(*args, **kwars):
+        
+        # gets selection
+        sel = cmds.ls(selection=True)
+
+        # runs decorated function
+        function_exec = function(*args, **kwars)
+
+        cmds.select(sel, replace=True)
+
+        return function_exec
+
+    return wrapper_function
+
 def set_focus(function):
     """ Set focus on Flex window
 
