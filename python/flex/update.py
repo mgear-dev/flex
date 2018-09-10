@@ -95,6 +95,24 @@ def clean_uvs_sets(shape):
             cmds.removeMultiInstance("{}.uvSet[{}]".format(shape, idx))
 
 
+def copy_map1_name(source, target):
+    """ Copies the name of the uvSet at index zero (map1) to match it
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+    """
+
+    if cmds.objectType(target) != "mesh" or cmds.objectType(source) != "mesh":
+        return
+
+    source_uv_name = cmds.getAttr("{}.uvSet[0].uvSetName".format(source))
+    cmds.setAttr("{}.uvSet[0].uvSetName".format(target), source_uv_name,
+                 type="string")
+
+
 @timer
 def copy_skin_weights(source_skin, target_skin):
     """ Copy skin weights from the given source skin cluster node to the target
@@ -187,7 +205,7 @@ def update_attribute(source, target, attribute_name):
     lock = is_lock_attribute(target, attribute_name)
 
     if not lock_unlock_attribute(target, attribute_name, False):
-        logger.warning("The given attribute ({}) can't be updated on {}"
+        logger.warning("The given attribute {} can't be updated on {}"
                        .format(attribute_name, target))
         return
 
@@ -253,6 +271,10 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     cmds.evalDeferred(functools.partial(cmds.delete, cmds.listRelatives(
         shape_backup, parent=True)))
 
+    # updates uv sets on target shape
+    cmds.evalDeferred(functools.partial(update_uvs_sets, target))
+
+    # refreshes view
     cmds.refresh()
 
 
@@ -289,12 +311,18 @@ def update_deformed_shape(source, target, mismatching_topology=True):
 
     deform_origin = deform_origin[0]
 
+    # updates map1 name
+    copy_map1_name(source, deform_origin)
+
     if mismatching_topology and not is_matching_count(source, target):
         update_deformed_mismatching_shape(source, target, deform_origin)
         return
 
     # update the shape
     update_shape(source, deform_origin)
+
+    # update uvs set on target
+    update_uvs_sets(target)
 
 
 def update_maya_attributes(source, target, attributes):
@@ -528,3 +556,14 @@ def update_user_attributes(source, target):
     for attr in user_attributes:
         # updates the attribute values
         update_attribute(source, target, attr)
+
+
+def update_uvs_sets(shape):
+    """ Forces a given mesh shape uvs to update
+    """
+
+    if cmds.objectType(shape) != "mesh":
+        return
+
+    # forces uv refresh
+    cmds.setAttr("{}.outForceNodeUVUpdate ".format(shape), True)
