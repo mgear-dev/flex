@@ -12,13 +12,14 @@ from __future__ import absolute_import
 from PySide2 import QtWidgets
 from maya import OpenMayaUI, cmds
 from shiboken2 import wrapInstance
-
 from mgear.flex.analyze import analyze_groups
 from mgear.flex.analyze_widget import FLEX_ANALYZE_NAME
 from mgear.flex.analyze_widget import FlexAnalyzeDialog
 from mgear.flex.decorators import finished_running
 from mgear.flex.decorators import hold_selection
+from mgear.flex.decorators import isolate_view
 from mgear.flex.decorators import set_focus
+from mgear.flex.decorators import show_view
 from mgear.flex.flex_widget import FLEX_UI_NAME
 from mgear.flex.flex_widget import FlexDialog
 from mgear.flex.query import get_transform_selection, get_parent
@@ -423,8 +424,10 @@ class Flex(object):
 
         return self.__update_options
 
+    @show_view
     @finished_running
     @hold_selection
+    @isolate_view
     def update_rig(self, run_options=None):
         """ Launches the rig update process
 
