@@ -19,7 +19,7 @@ from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
 from mgear.flex.decorators import timer
-from mgear.flex.query import get_deformers_dict
+from mgear.flex.query import get_deformers_dict, is_matching_bouding_box
 from mgear.flex.query import get_dependency_node, is_matching_type, \
     is_matching_count
 from mgear.flex.query import get_matching_shapes_from_group
@@ -105,7 +105,7 @@ def copy_map1_name(source, target):
     :type target: str
     """
 
-    if cmds.objectType(target) != "mesh" or cmds.objectType(source) != "mesh":
+    if not is_matching_type(source, target):
         return
 
     source_uv_name = cmds.getAttr("{}.uvSet[0].uvSetName".format(source))
@@ -294,16 +294,19 @@ def update_deformed_shape(source, target, mismatching_topology=True):
     # gets orig shape
     deform_origin = get_shape_orig(target)
 
+    # returns as target is not a deformed shape
     if not deform_origin:
         return
 
     logger.debug("Deformed shape found: {}".format(target))
 
+    # returns if source and target shapes don't match
     if not is_matching_type(source, target):
         logger.warning("{} and {} don't have same shape type. passing..."
                        .format(source, target))
         return
 
+    # returns if vertices count isn't equal and mismatching isn't requested
     if not mismatching_topology and not is_matching_count(source, target):
         logger.warning("{} and {} don't have same shape vertices count."
                        "passing...".format(source, target))
@@ -314,7 +317,9 @@ def update_deformed_shape(source, target, mismatching_topology=True):
     # updates map1 name
     copy_map1_name(source, deform_origin)
 
-    if mismatching_topology and not is_matching_count(source, target):
+    # updates on mismatching topology but same bounding box
+    if mismatching_topology and not is_matching_count(source, target) and (
+            is_matching_bouding_box(source, target)):
         update_deformed_mismatching_shape(source, target, deform_origin)
         return
 
