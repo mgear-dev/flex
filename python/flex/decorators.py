@@ -88,8 +88,10 @@ def isolate_view(function):
                 # clear isolated panel set
                 isolate_set = cmds.isolateSelect(model_panel, query=True,
                                                  viewObjects=True)
-                if isolate_set:
+                try:
                     cmds.sets(clear=isolate_set)
+                except TypeError:
+                    continue
 
             # forces view refresh
             cmds.refresh()
