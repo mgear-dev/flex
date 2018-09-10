@@ -9,6 +9,8 @@ Contains the Flex Analyze interface
 
 # imports
 from PySide2 import QtWidgets, QtGui, QtCore
+
+from mgear.flex import logger
 from mgear.flex.colors import YELLOW
 from mgear.flex.query import get_resources_path
 
@@ -30,6 +32,8 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         :type parent: PySide2.QtWidgets
         """
         super(FlexAnalyzeDialog, self).__init__(parent=parent)
+
+        logger.debug("Analyze widget initialised")
 
         # sets window rules
         self.setObjectName(FLEX_ANALYZE_NAME)

@@ -8,6 +8,7 @@ Contains the Flex user interface
 
 # imports
 from PySide2 import QtWidgets, QtCore
+from mgear.flex import logger
 from mgear.flex.colors import RED, GREEN, BLUE, YELLOW
 
 # flex ui name
@@ -27,6 +28,8 @@ class FlexDialog(QtWidgets.QDialog):
         :type parent: PySide2.QtWidgets
         """
         super(FlexDialog, self).__init__(parent=parent)
+
+        logger.debug("Flex widget initialised")
 
         # sets window rules
         self.setObjectName(FLEX_UI_NAME)
