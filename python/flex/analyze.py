@@ -8,9 +8,8 @@ you want to update with Flex
 
 # imports
 from __future__ import absolute_import
-
 import logging
-
+from mgear.flex import logger
 from mgear.flex.decorators import timer
 from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import is_matching_bouding_box
@@ -31,6 +30,9 @@ def analyze_groups(source, target):
     :param target: maya transform node
     :type target: str
     """
+
+    logger.debug("Analysing the following groups - source: {}  - target: {}"
+                 .format(source, target))
 
     # gets the matching shapes
     matching_shapes = get_matching_shapes_from_group(source, target)
