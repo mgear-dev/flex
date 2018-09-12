@@ -40,7 +40,7 @@ def get_clean_matching_shapes(source, target):
     return sources_dict, targets_dict
 
 
-def get_deformers_dict(shape):
+def get_deformers(shape):
     """ Returns a dict with each deformer found on the given shape
 
     :param shape: the shape node name
@@ -286,8 +286,12 @@ def get_shape_type_attributes(shape):
 
     # set the default values for a mesh node type
     shape_attributes["points"] = "pnts"
-    shape_attributes["input"] = "inMesh"
-    shape_attributes["output"] = "outMesh"
+    shape_attributes["input"] = "{}".format(cmds.listHistory(
+        shape, query=True, historyAttr=True)[0].split(".")[-1])
+    shape_attributes["output"] = "{}".format(cmds.listHistory(
+        shape, query=True, futureLocalAttr=True)[0].split(".")[-1])
+    shape_attributes["output_world"] = "{}".format(cmds.listHistory(
+        shape, query=True, futureWorldAttr=True)[0].split(".")[-1])
     shape_attributes["p_axes"] = ("pntx", "pnty", "pntz")
 
     if cmds.objectType(shape) == "nurbsSurface" or (cmds.objectType(shape) ==
@@ -295,8 +299,6 @@ def get_shape_type_attributes(shape):
 
         # set the default values for a nurbs node type
         shape_attributes["points"] = "controlPoints"
-        shape_attributes["input"] = "create"
-        shape_attributes["output"] = "local"
         shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
 
     return shape_attributes
