@@ -8,12 +8,13 @@ and update functions of Flex
 
 # import
 from __future__ import absolute_import
+
 import math
 from maya import OpenMaya
 from maya import cmds
-import os
 from mgear.flex import logger  # @UnusedImport
 from mgear.flex.decorators import timer  # @UnusedImport
+import os
 
 
 def get_clean_matching_shapes(source, target):
@@ -397,6 +398,12 @@ def is_matching_bouding_box(source, target, tolerance=0.001):
     :return: If source and target matches their bounding box
     :rtype: bool
     """
+
+    # gets orig shape if deformed shape
+    orig_shape = get_shape_orig(target)
+
+    if orig_shape:
+        target = orig_shape[0]
 
     # get min bounding box vectors
     src_min = cmds.getAttr("{}.boundingBoxMin".format(source))[0]
