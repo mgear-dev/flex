@@ -262,6 +262,11 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
         logger.error("Dual skinning is yet not supported")
         return
 
+    # THIS NEED TO BE REFACTOR
+    for deformer_type in deformers:
+        for i in deformers[deformer_type] or []:
+            cmds.setAttr("{}.envelope".format(i), 0)
+
     # creates skin backup shape
     shape_backup, skin_backup = create_skin_backup(shape_orig,
                                                    deformers["skinCluster"][0])
