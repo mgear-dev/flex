@@ -19,7 +19,7 @@ from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
 from mgear.flex.decorators import timer
-from mgear.flex.query import get_deformers_dict, is_matching_bouding_box
+from mgear.flex.query import get_deformers, is_matching_bouding_box
 from mgear.flex.query import get_dependency_node, is_matching_type, \
     is_matching_count
 from mgear.flex.query import get_matching_shapes_from_group
@@ -248,7 +248,7 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     logger.debug("Running update deformed mismatched shapes")
 
     # gets all deformers used the target shape
-    deformers = get_deformers_dict(target)
+    deformers = get_deformers(target)
 
     # THIS PART NEEDS TO BE MOVED
     # return when more than 1 skinCluster node is used on shape
