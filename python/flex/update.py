@@ -109,8 +109,14 @@ def copy_map1_name(source, target):
         return
 
     source_uv_name = cmds.getAttr("{}.uvSet[0].uvSetName".format(source))
-    cmds.setAttr("{}.uvSet[0].uvSetName".format(target), source_uv_name,
-                 type="string")
+
+    try:
+        cmds.setAttr("{}.uvSet[0].uvSetName".format(target), source_uv_name,
+                     type="string")
+    except RuntimeError:
+        logger.debug("{} doesn not have uvs, skipping udpate map1 name".format(
+            target))
+        return
 
 
 @timer
