@@ -12,9 +12,10 @@ from __future__ import absolute_import
 import math
 from maya import OpenMaya
 from maya import cmds
+import os
+
 from mgear.flex import logger  # @UnusedImport
 from mgear.flex.decorators import timer  # @UnusedImport
-import os
 
 
 def get_clean_matching_shapes(source, target):
@@ -191,6 +192,19 @@ def get_parent(element):
 
     return cmds.listRelatives(element, parent=True, fullPath=True,
                               type="transform")
+
+
+def get_prefix_less_name(element):
+    """ Returns a prefix-less name
+
+    :param elements: element top use on the search
+    :type elements: str
+
+    :return: The prefix-less name
+    :rtype: str
+    """
+
+    return element.split("|")[-1].split(":")[-1]
 
 
 def get_prefix_less_dict(elements):
