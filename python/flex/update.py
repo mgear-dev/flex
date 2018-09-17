@@ -175,32 +175,33 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     # creates blendshapes nodes backup
     bs_nodes = None
     if len(deformers["blendShape"]):
-        bs_nodes, bs_shape = create_blendshapes_backup(target, source,
-                                                       deformers["blendShape"])
+        bs_nodes, bs_backup = create_blendshapes_backup(target, source,
+                                                        deformers["blendShape"]
+                                                        )
 
     # creates skin backup shape
-    shape_backup, skin_backup = create_skin_backup(shape_orig,
-                                                   deformers["skinCluster"][0])
+    skin_backup, skin_node_backup = create_skin_backup(shape_orig,
+                                                       deformers["skinCluster"]
+                                                       [0])
 
     # updates target shape
     update_shape(source, shape_orig)
 
     # copy skinning from backup
-    copy_skin_weights(skin_backup, deformers["skinCluster"][0])
-
-    # deletes the holder
-    cmds.delete(cmds.listRelatives(shape_backup, parent=True))
+    copy_skin_weights(skin_node_backup, deformers["skinCluster"][0])
 
     if bs_nodes:
         update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
-
-    cmds.delete(cmds.listRelatives(bs_shape, parent=True))
 
     # updates uv sets on target shape
     update_uvs_sets(target)
 
     # Turns all deformers envelope ON
     set_deformer_state(deformers, True)
+
+    # deletes the backups
+    for i in [skin_backup, bs_backup]:
+        cmds.delete(cmds.listRelatives(i, parent=True))
 
 
 def update_deformed_shape(source, target, mismatching_topology=True):

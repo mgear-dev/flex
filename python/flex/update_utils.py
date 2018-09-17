@@ -122,6 +122,10 @@ def copy_blendshape_node(node, target):
         target_name = cmds.aliasAttr("{}.weight[{}]".format(node, idx),
                                      query=True)
 
+        # checks for empty target
+        if not cmds.getAttr(attr_name, multiIndices=True):
+            continue
+
         # loop on actual targets and in-between targets
         for target in cmds.getAttr(attr_name, multiIndices=True):
             # target attribute name
@@ -328,8 +332,6 @@ def create_blendshapes_backup(source, target, nodes):
     return return_nodes, target_duplicate
 
 
-
-
 def create_duplicate(shape, duplicate_name):
     """ Creates a shape node duplicate
 
@@ -387,7 +389,6 @@ def create_skin_backup(shape, skin_node):
     copy_skin_weights(skin_node, skin_holder[0])
 
     return "{}".format(shape_duplicate), "{}".format(skin_holder[0])
-
 
 
 def create_wrap(source, target, intermediate=None):
