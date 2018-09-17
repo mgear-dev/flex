@@ -12,10 +12,40 @@ from __future__ import absolute_import
 import math
 from maya import OpenMaya
 from maya import cmds
-import os
-
 from mgear.flex import logger  # @UnusedImport
 from mgear.flex.decorators import timer  # @UnusedImport
+import os
+
+
+def filter_shape_orig(shape, intermediate):
+    """ Filters whether the intermediate shape provided should be used or not
+
+    if an intermediate isn't provided then
+
+    :param shape: the shape node name
+    :type shape: str
+
+    :param intermediate: the intermediate shape name
+    :type intemediate: str
+
+    :return: the valid intermediate shape
+    :rtype: str
+    """
+
+    # gets source intermediate shape if any
+    orig = get_shape_orig(shape)
+
+    # return the orig shape if no intermediate was provided and one is found
+    if not intermediate and orig:
+        return orig[0]
+
+    # return the provided intermediate shape
+    elif intermediate:
+        return intermediate
+
+    # return the shape if no intermediate was given and no orig shape was found
+    else:
+        return shape
 
 
 def get_clean_matching_shapes(source, target):

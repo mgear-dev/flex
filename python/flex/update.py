@@ -9,7 +9,6 @@ flex.update module handles the updating rig process
 # imports
 from __future__ import absolute_import
 
-import functools
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
@@ -20,6 +19,7 @@ from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
 from mgear.flex.decorators import timer
+from mgear.flex.query import filter_shape_orig
 from mgear.flex.query import get_deformers, is_matching_bouding_box
 from mgear.flex.query import get_dependency_node, is_matching_type, \
     is_matching_count
@@ -436,17 +436,11 @@ def create_wrap(source, target, intermediate=None):
     # gets attributes types for the given target
     attrs = get_shape_type_attributes(target)
 
-    # gets source intermediate shape
-    orig = get_shape_orig(source)
-    if not intermediate and orig:
-        intermediate = orig[0]
-    elif intermediate:
-        pass
-    else:
-        intermediate = source
+    # filters intermediate shape
+    intermediate_shape = filter_shape_orig(source, intermediate)
 
     # connects the wrap node to the source
-    cmds.connectAttr("{}.{}".format(intermediate, attrs["output_world"]),
+    cmds.connectAttr("{}.{}".format(intermediate_shape, attrs["output_world"]),
                      "{}.basePoints[0]".format(wrap_node), force=True)
     cmds.connectAttr("{}.{}".format(source, attrs["output"]),
                      "{}.driverPoints[0]".format(wrap_node), force=True)
