@@ -15,6 +15,7 @@ from maya import cmds
 from maya import mel
 
 from mgear.flex import logger
+from mgear.flex.attributes import BLENDSHAPE_TARGET
 from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
@@ -25,6 +26,7 @@ from mgear.flex.query import get_dependency_node, is_matching_type, \
 from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import get_missing_shapes_from_group
 from mgear.flex.query import get_parent
+from mgear.flex.query import get_prefix_less_name
 from mgear.flex.query import get_shape_orig
 from mgear.flex.query import get_shape_type_attributes
 from mgear.flex.query import is_lock_attribute
@@ -95,6 +97,85 @@ def clean_uvs_sets(shape):
             cmds.removeMultiInstance("{}.uvSet[{}]".format(shape, idx))
 
 
+def copy_blendshape_node(node, target):
+    """ Copies the given blendshape node into the given target shape
+
+    :param node: blendshape node
+    :type node: str
+
+    :param target: target shape node
+    :type target: str
+
+    :return: copied blenshape node
+    :rtype: str
+    """
+
+    logger.debug("Copying blendshape node {} to {}".format(node, target))
+
+    # get blendshape targets indices
+    targets_idx = cmds.getAttr("{}.weight".format(node), multiIndices=True)
+
+    # skip node if no targets where found
+    if not targets_idx:
+        return
+
+    # list for ignored targets (when they are live connected)
+    ignore = []
+
+    # creates blendshape deformer node on target
+    node_copy = cmds.deformer(target, type="blendShape", name="flex_copy_{}"
+                              .format(node))[0]
+
+    # loop on blendshape targets indices
+    for idx in targets_idx:
+        # input target group attribute
+        attr_name = (BLENDSHAPE_TARGET.format(node, idx))
+
+        # blendshape target name
+        target_name = cmds.aliasAttr("{}.weight[{}]".format(node, idx),
+                                     query=True)
+
+        # loop on actual targets and in-between targets
+        for target in cmds.getAttr(attr_name, multiIndices=True):
+            # target attribute name
+            target_attr = "{}[{}]".format(attr_name, target)
+
+            # checks for incoming connections on the geometry target
+            if cmds.listConnections("{}.inputGeomTarget".format(target_attr),
+                                    destination=False):
+
+                logger.warning("{} can't be updated because it is a live "
+                               "target".format(target_name))
+                ignore.append(idx)
+                continue
+
+            # updates node copy target
+            destination = target_attr.replace(target_attr.split(".")[0],
+                                              node_copy)
+            cmds.connectAttr(target_attr, destination, force=True)
+            cmds.disconnectAttr(target_attr, destination)
+
+        # skips updating target name if this was a life target
+        if idx in ignore:
+            continue
+
+        # forces the weight attribute to be shown on the blendshape node
+        cmds.setAttr("{}.weight[{}]".format(node_copy, idx), 0)
+
+        # updates blendshape node attribute name
+        if target_name:
+            cmds.aliasAttr(target_name, "{}.weight[{}]"
+                           .format(node_copy, idx))
+
+    # gets targets on copied node to see if there is any node with zero target
+    idx = cmds.getAttr("{}.weight".format(node_copy), multiIndices=True)
+    if not idx:
+        cmds.delete(node_copy)
+        return
+
+    return node_copy
+
+
 def copy_map1_name(source, target):
     """ Copies the name of the uvSet at index zero (map1) to match it
 
@@ -136,11 +217,150 @@ def copy_skin_weights(source_skin, target_skin):
     logger.info("Copying skinning from {} to {}".format(source_skin,
                                                         target_skin))
 
+    # copy skin command
     cmds.copySkinWeights(sourceSkin=source_skin, destinationSkin=target_skin,
                          surfaceAssociation="closestComponent", noMirror=True,
                          influenceAssociation=("label",
                                                "closestJoint",
                                                "oneToOne"))
+    # forces a refresh in order to correctly evaluate the skin node
+    # doing a dgeval or dgdirty did not created enough stable results are
+    # forcing the refresh
+    cmds.refresh()
+
+
+@timer
+def create_blendshapes_backup(source, target, nodes):
+    """ Creates an updated backup for the given blendshapes nodes on source
+
+    .. important:: This method does not work as the other source/target type
+                   of methods in flex. The source is the current geometry
+                   before topology update containing the blendshape nodes.
+                   We use it in order to create a wrap to the newer target
+                   geometry topology.
+
+    :param source: current shape node
+    :type source: str
+
+    :param target: new shape node
+    :type target: str
+
+    :return: a shape node containing the new blenshape targets
+    :rtype: str
+    """
+
+    logger.debug("Creating blendshapes backup")
+
+    # gets simpler shape name
+    shape_name = get_prefix_less_name(target)
+
+    # get attributes types
+    attrs = get_shape_type_attributes(target)
+
+    # creates source duplicate
+    intermediate = get_shape_orig(source)[0]
+    source_duplicate = create_duplicate(intermediate, "{}_flex_bs_sourceShape"
+                                        .format(shape_name))
+
+    # first loops to create a clean copy of the blendshape nodes
+    nodes_copy = []
+    for node in nodes:
+        duplicate = copy_blendshape_node(node, source_duplicate)
+        if duplicate:
+            nodes_copy.append(duplicate)
+
+    # creates warped target shape
+    warp_target = create_duplicate(target, "{}_flex_bs_warpShape"
+                                   .format(shape_name))
+
+    # wraps the duplicate to the source
+    create_wrap(source_duplicate, warp_target)
+
+    # creates blendshape target shape
+    target_duplicate = create_duplicate(target, "{}_flex_bs_targetShape"
+                                        .format(shape_name))
+
+    return_nodes = []
+
+    # loops on the blendshape nodes
+    for node in nodes_copy:
+        # creates transfer blendshape
+        transfer_node = cmds.deformer(target_duplicate, type="blendShape",
+                                      name="flex_transfer_{}".format(node))[0]
+
+        # get blendshape targets indices. We skip verification because at this
+        # stage the copied blendshapes nodes will always have targets
+        targets_idx = cmds.getAttr("{}.weight".format(node), multiIndices=True)
+
+        # loop on blendshape targets indices
+        for idx in targets_idx or []:
+            # input target group attribute
+            attr_name = (BLENDSHAPE_TARGET.format(node, idx))
+
+            # blendshape target name
+            target_name = cmds.aliasAttr("{}.weight[{}]".format(node, idx),
+                                         query=True)
+
+            # loop on actual targets and in-between targets
+            for target in cmds.getAttr(attr_name, multiIndices=True):
+
+                # gets and sets the blendshape weight value
+                weight = float((target - 5000) / 1000.0)
+                cmds.setAttr("{}.weight[{}]".format(node, idx), weight)
+
+                # geometry target attribute
+                geometry_target_attr = "{}[{}].inputGeomTarget".format(
+                    attr_name, target)
+
+                shape_target = geometry_target_attr.replace(
+                    geometry_target_attr.split(".")[0], transfer_node)
+
+                # updates the target
+                cmds.connectAttr("{}.{}".format(warp_target, attrs["output"]),
+                                 shape_target, force=True)
+
+                cmds.disconnectAttr("{}.{}"
+                                    .format(warp_target, attrs["output"]),
+                                    shape_target)
+
+                cmds.setAttr("{}.weight[{}]".format(node, idx), 0)
+
+            cmds.setAttr("{}.weight[{}]".format(transfer_node, idx), 0)
+
+            if target_name:
+                cmds.aliasAttr(target_name, "{}.weight[{}]".format(
+                    transfer_node, idx))
+
+        # adds blendshape node to nodes to return
+        return_nodes.append(transfer_node)
+
+    # deletes backup process shapes
+    cmds.delete(cmds.listRelatives(source_duplicate, parent=True),
+                cmds.listRelatives(warp_target, parent=True))
+
+    return return_nodes, target_duplicate
+
+
+def create_duplicate(shape, duplicate_name):
+    """ Creates a shape node duplicate
+
+    :param shape: the shape node to duplicate
+    :type shape: str
+
+    :param name: the name for the duplicate
+    :type name: str
+
+    :return: the duplicated shape node
+    :rtype: str
+    """
+
+    logger.debug("Creating shape duplicate for {}".format(shape))
+    shape_holder = cmds.createNode(cmds.objectType(shape),
+                                   name="{}Shape".format(duplicate_name))
+    cmds.rename(shape_holder, "{}".format(shape_holder))
+    update_shape(shape, shape_holder)
+
+    return shape_holder
 
 
 @timer
@@ -162,14 +382,13 @@ def create_skin_backup(shape, skin_node):
     # gets the skin cluster influences
     influences = cmds.listConnections("{}.matrix".format(skin_node))
 
-    # creates a duplicate mesh of the given shape
-    holder_name = "flex_skin_shape_holder"
-    shape_holder = cmds.createNode("mesh", name="{}Shape".format(holder_name))
-    cmds.rename(shape_holder, "{}".format(shape_holder))
-    update_shape(shape, shape_holder)
+    # creates a duplicate shape of the given shape
+    holder_name = "{}_flex_skin_shape_holder".format(
+        get_prefix_less_name(shape))
+    shape_duplicate = create_duplicate(shape, holder_name)
 
     # creates new skin cluster node on duplicate
-    skin_holder = cmds.skinCluster(influences, shape_holder, bindMethod=0,
+    skin_holder = cmds.skinCluster(influences, shape_duplicate, bindMethod=0,
                                    obeyMaxInfluences=False, skinMethod=0,
                                    weightDistribution=0, normalizeWeights=1,
                                    removeUnusedInfluence=False, name="{}_SKN"
@@ -178,7 +397,63 @@ def create_skin_backup(shape, skin_node):
     # copy the given skin node weights to back up shape
     copy_skin_weights(skin_node, skin_holder[0])
 
-    return "{}".format(shape_holder), "{}".format(skin_holder[0])
+    return "{}".format(shape_duplicate), "{}".format(skin_holder[0])
+
+
+def create_wrap(source, target, intermediate=None):
+    """ Creates a wrap deformer on the target by using source as driver
+
+    :param source: the maya source node
+    :type source: str
+
+    :param target: the maya target node
+    :type target: str
+
+    :param intermediate: the intermediate shape to use on the warp node
+    :type intermediate: str
+
+    :return: wrap node
+    :rtype: str
+    """
+
+    logger.debug("Creating wrap deformer for {} using {}".format(target,
+                                                                 source))
+
+    # creates the deformer
+    target_type = cmds.objectType(target)
+    wrap_node = cmds.deformer(target, type="wrap", name="flex_warp")[0]
+    cmds.setAttr("{}.exclusiveBind".format(wrap_node), 1)
+    cmds.setAttr("{}.autoWeightThreshold".format(wrap_node), 1)
+    cmds.setAttr("{}.dropoff[0]".format(wrap_node), 4.0)
+
+    # sets settings for nurbs type shapes
+    if target_type == "nurbsSurface" or target_type == "nurbsCurve":
+        cmds.setAttr("{}.nurbsSamples[0]".format(wrap_node), 10)
+    # sets settings for mesh type shapes
+    else:
+        cmds.setAttr("{}.inflType[0]".format(wrap_node), 2)
+
+    # gets attributes types for the given target
+    attrs = get_shape_type_attributes(target)
+
+    # gets source intermediate shape
+    orig = get_shape_orig(source)
+    if not intermediate and orig:
+        intermediate = orig[0]
+    elif intermediate:
+        pass
+    else:
+        intermediate = source
+
+    # connects the wrap node to the source
+    cmds.connectAttr("{}.{}".format(intermediate, attrs["output_world"]),
+                     "{}.basePoints[0]".format(wrap_node), force=True)
+    cmds.connectAttr("{}.{}".format(source, attrs["output"]),
+                     "{}.driverPoints[0]".format(wrap_node), force=True)
+    cmds.connectAttr("{}.worldMatrix[0]".format(target),
+                     "{}.geomMatrix".format(wrap_node), force=True)
+
+    return wrap_node
 
 
 def update_attribute(source, target, attribute_name):
@@ -237,6 +512,55 @@ def update_attribute(source, target, attribute_name):
         lock_unlock_attribute(target, attribute_name, True)
 
 
+def update_blendshapes_nodes(source_nodes, target_nodes):
+    """ Update all target shapes with the given source shapes
+
+    :param source_nodes: source blendshape nodes
+    :type source_nodes: list(str)
+
+    :param target_nodes: target blendshape nodes
+    :type target_nodes: list(str)
+    """
+
+    for node in target_nodes:
+        match_node = [x for x in source_nodes if node in x] or None
+
+        if not match_node:
+            continue
+
+        # gets source and targets indices
+        targets_idx = cmds.getAttr("{}.weight".format(node), multiIndices=True)
+        source_idx = cmds.getAttr("{}.weight".format(match_node[0]),
+                                  multiIndices=True)
+
+        for idx in targets_idx:
+            # blendshape target name
+            target_name = cmds.aliasAttr("{}.weight[{}]".format(node, idx),
+                                         query=True)
+
+            # gets corresponding source idx
+            match_idx = [x for x in source_idx if cmds.aliasAttr(
+                "{}.weight[{}]".format(match_node[0], x),
+                query=True) == target_name]
+
+            if not match_idx:
+                continue
+
+            # input target group attribute
+            source_name = (BLENDSHAPE_TARGET.format(match_node[0],
+                                                    match_idx[0]))
+            target_name = (BLENDSHAPE_TARGET.format(node, idx))
+
+            # loop on actual targets and in-between targets
+            for target in cmds.getAttr(target_name, multiIndices=True):
+                # target attribute name
+                source_attr = "{}[{}]".format(source_name, target)
+                target_attr = "{}[{}]".format(target_name, target)
+
+                cmds.connectAttr(source_attr, target_attr, force=True)
+                cmds.disconnectAttr(source_attr, target_attr)
+
+
 @timer
 def update_deformed_mismatching_shape(source, target, shape_orig):
     """ Updates the target shape with the given source shape content
@@ -260,33 +584,42 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     # return when more than 1 skinCluster node is used on shape
     if len(deformers["skinCluster"]) > 1:
         logger.error("Dual skinning is yet not supported")
-        return
 
-    # THIS NEED TO BE REFACTOR
-    for deformer_type in deformers:
-        for i in deformers[deformer_type] or []:
-            cmds.setAttr("{}.envelope".format(i), 0)
+#     # Turns all deformers envelope off
+#     for deformer_type in deformers:
+#         for i in deformers[deformer_type] or []:
+#             try:
+#                 cmds.setAttr("{}.envelope".format(i), 0)
+#             except RuntimeError:
+#                 mute_node = cmds.mute("{}.envelope".format(i), force=True)[0]
+#                 cmds.setAttr("{}.hold".format(mute_node), 0)
+
+    # creates blendshapes nodes backup
+    bs_nodes = None
+    if len(deformers["blendShape"]):
+        bs_nodes, bs_shape = create_blendshapes_backup(target, source,
+                                                       deformers["blendShape"])
 
     # creates skin backup shape
     shape_backup, skin_backup = create_skin_backup(shape_orig,
                                                    deformers["skinCluster"][0])
 
     # updates target shape
-    cmds.evalDeferred(functools.partial(update_shape, source, shape_orig))
+    update_shape(source, shape_orig)
 
     # copy skinning from backup
-    cmds.evalDeferred(functools.partial(copy_skin_weights, skin_backup,
-                                        deformers["skinCluster"][0]))
+    copy_skin_weights(skin_backup, deformers["skinCluster"][0])
 
     # deletes the holder
-    cmds.evalDeferred(functools.partial(cmds.delete, cmds.listRelatives(
-        shape_backup, parent=True)))
+    cmds.delete(cmds.listRelatives(shape_backup, parent=True))
+
+    if bs_nodes:
+        update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
+
+    cmds.delete(cmds.listRelatives(bs_shape, parent=True))
 
     # updates uv sets on target shape
-    cmds.evalDeferred(functools.partial(update_uvs_sets, target))
-
-    # refreshes view
-    cmds.refresh()
+    update_uvs_sets(target)
 
 
 def update_deformed_shape(source, target, mismatching_topology=True):
