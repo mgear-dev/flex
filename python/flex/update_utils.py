@@ -333,16 +333,16 @@ def create_blendshapes_backup(source, target, nodes):
 
 def create_deformers_backups(source, target, shape_orig, deformers):
     """ Handles creating the correct backup shapes for the given deformers
-    
+
     :param source: the shape containing the new shape
     :type source: str
 
     :param target: the shape containing the deformers
     :type target: str
-    
+
     :param shape_orig: the intermediate shape from the target shape
     :type shape_orig: str
-    
+
     :param deformers: deformers used on target
     :type deformers: dict
     """
@@ -358,7 +358,7 @@ def create_deformers_backups(source, target, shape_orig, deformers):
 
     # creates skin backup shape
     if len(deformers["skinCluster"]):
-        skin_node_backup = create_skincluster_backup(shape_orig,
+        skin_node = create_skincluster_backup(shape_orig,
                                               deformers["skinCluster"][0])
 
     return bs_nodes, skin_node
