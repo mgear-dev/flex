@@ -108,6 +108,7 @@ def update_blendshapes_nodes(source_nodes, target_nodes):
         return
 
     for node in target_nodes:
+        # finds matching node name on the source nodes
         match_node = [x for x in source_nodes if node in x] or None
 
         if not match_node:
@@ -179,7 +180,7 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     update_shape(source, shape_orig)
 
     # updates skinning nodes
-    update_skincluster_node(skin_nodes[0], deformers["skinCluster"][0])
+    update_skincluster_node(skin_nodes, deformers["skinCluster"])
 
     # updates blendshapes nodes
     update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
@@ -191,7 +192,7 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     set_deformer_state(deformers, True)
 
     # deletes backups
-    delete_transform_from_nodes([bs_nodes[0], skin_nodes[0]])
+    delete_transform_from_nodes(set(bs_nodes).union(skin_nodes))
 
 
 def update_deformed_shape(source, target, mismatching_topology=True):
@@ -361,11 +362,11 @@ def update_skincluster_node(source_skin, target_skin):
         logger.error('No backup skinning found for {}'.format(target_skin))
         return
 
-    logger.info("Copying skinning from {} to {}".format(source_skin,
+    logger.info("Copying skinning from {} to {}".format(source_skin[0],
                                                         target_skin))
 
     # copy skin weights
-    copy_skin_weights(source_skin, target_skin)
+    copy_skin_weights(source_skin[0], target_skin[0])
 
 
 def update_transform(source, target):
