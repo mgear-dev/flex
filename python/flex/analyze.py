@@ -8,16 +8,12 @@ you want to update with Flex
 
 # imports
 from __future__ import absolute_import
-import logging
 from mgear.flex import logger
 from mgear.flex.decorators import timer
 from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import is_matching_bouding_box
 from mgear.flex.query import is_matching_count
 from mgear.flex.query import is_matching_type
-
-logger = logging.getLogger("mGear: Flex")
-logger.setLevel(logging.DEBUG)
 
 
 @timer
