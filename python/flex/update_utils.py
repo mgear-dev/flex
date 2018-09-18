@@ -345,11 +345,14 @@ def create_deformers_backups(source, target, shape_orig, deformers):
 
     :param deformers: deformers used on target
     :type deformers: dict
+
+    :return: deformers backups nodes created
+    :rtype: list, list
     """
 
     # declare return values
     bs_nodes = None
-    skin_node = None
+    skin_nodes = None
 
     # creates blendshapes nodes backup
     if len(deformers["blendShape"]):
@@ -358,10 +361,10 @@ def create_deformers_backups(source, target, shape_orig, deformers):
 
     # creates skin backup shape
     if len(deformers["skinCluster"]):
-        skin_node = create_skincluster_backup(shape_orig,
-                                              deformers["skinCluster"][0])
+        skin_nodes = create_skincluster_backup(shape_orig,
+                                               deformers["skinCluster"][0])
 
-    return bs_nodes, skin_node
+    return bs_nodes, skin_nodes
 
 
 def create_duplicate(shape, duplicate_name):
@@ -420,7 +423,7 @@ def create_skincluster_backup(shape, skin_node):
     # copy the given skin node weights to back up shape
     copy_skin_weights(skin_node, skin_holder[0])
 
-    return "{}".format(skin_holder[0])
+    return ["{}".format(skin_holder[0])]
 
 
 def create_wrap(source, target, intermediate=None):
@@ -473,19 +476,22 @@ def create_wrap(source, target, intermediate=None):
     return wrap_node
 
 
-def delete_transform_from_shape(shape):
-    """ Deletes the given shape transform and shape
+def delete_transform_from_nodes(nodes):
+    """ Deletes the dag object transform node found from the given nodes
 
-    :param shape: the shape node name
-    :type shape: str
+    :param shape: nodes names
+    :type shape: list
     """
 
-    if not shape:
-        return
-    try:
-        cmds.delete(cmds.listRelatives(shape, parent=True))
-    except RuntimeError:
-        return
+    for node in nodes:
+        shape = [x for x in cmds.listHistory(node, future=True)
+                 if x not in cmds.listHistory(node, future=True, pdo=True)]
+
+        try:
+            transform = cmds.listRelatives(shape, parent=True)
+            cmds.delete(transform)
+        except RuntimeError:
+            return
 
 
 def filter_shape_orig(shape, intermediate):
