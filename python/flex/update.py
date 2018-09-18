@@ -19,23 +19,16 @@ from mgear.flex.query import get_deformers
 from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import get_missing_shapes_from_group
 from mgear.flex.query import get_parent
-from mgear.flex.query import get_prefix_less_name
 from mgear.flex.query import get_shape_orig
-from mgear.flex.query import get_shape_type_attributes
 from mgear.flex.query import is_lock_attribute
 from mgear.flex.query import is_matching_bouding_box
 from mgear.flex.query import is_matching_count
 from mgear.flex.query import is_matching_type
 from mgear.flex.query import lock_unlock_attribute
-from mgear.flex.udpate_utils import add_attribute
-from mgear.flex.udpate_utils import create_blendshapes_backup
-from mgear.flex.udpate_utils import set_deformer_state
-from mgear.flex.update_utils import clean_uvs_sets
+from mgear.flex.update_utils import add_attribute, copy_skin_weights
 from mgear.flex.update_utils import copy_map1_name
-from mgear.flex.update_utils import copy_skin_weights
-from mgear.flex.update_utils import create_duplicate
-from mgear.flex.update_utils import create_skin_backup
-from mgear.flex.update_utils import create_wrap
+from mgear.flex.update_utils import create_deformers_backups
+from mgear.flex.update_utils import set_deformer_state
 from mgear.flex.update_utils import update_shape
 import pymel.core as pm
 
@@ -161,34 +154,27 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
 
     logger.debug("Running update deformed mismatched shapes")
 
-    # gets all deformers used the target shape
+    # gets all deformers on the target shape (supported by flex)
     deformers = get_deformers(target)
 
-    # THIS PART NEEDS TO BE MOVED
     # return when more than 1 skinCluster node is used on shape
     if len(deformers["skinCluster"]) > 1:
-        logger.error("Dual skinning is yet not supported")
+        logger.warning("Dual skinning is yet not supported. {} will be used"
+                       .format(deformers["skinCluster"][0]))
 
     # Turns all deformers envelope off
     set_deformer_state(deformers, False)
 
-    # creates blendshapes nodes backup
-    bs_nodes = None
-    if len(deformers["blendShape"]):
-        bs_nodes, bs_backup = create_blendshapes_backup(target, source,
-                                                        deformers["blendShape"]
-                                                        )
-
-    # creates skin backup shape
-    skin_backup, skin_node_backup = create_skin_backup(shape_orig,
-                                                       deformers["skinCluster"]
-                                                       [0])
+    # creates deformers backups
+    bs_nodes, skin_node = create_deformers_backups(source, target, shape_orig,
+                                                   deformers)
 
     # updates target shape
     update_shape(source, shape_orig)
 
     # copy skinning from backup
-    copy_skin_weights(skin_node_backup, deformers["skinCluster"][0])
+    if skin_node:
+        update_skincluster_node(skin_node, deformers["skinCluster"][0])
 
     if bs_nodes:
         update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
@@ -198,10 +184,6 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
 
     # Turns all deformers envelope ON
     set_deformer_state(deformers, True)
-
-    # deletes the backups
-    for i in [skin_backup, bs_backup]:
-        cmds.delete(cmds.listRelatives(i, parent=True))
 
 
 def update_deformed_shape(source, target, mismatching_topology=True):
@@ -355,6 +337,23 @@ def update_rig(source, target, options):
     logger.info("Target missing shapes: {}" .format(
         get_missing_shapes_from_group(target, source)))
     logger.info("-" * 90)
+
+
+def update_skincluster_node(source_skin, target_skin):
+    """ Updates the skin weights on the given target skin from the source skin
+
+    :param source_skin: the source skin cluster node name
+    :type source_skin: str
+
+    :param target_skin: the target skin cluster node name
+    :type target_skin: str
+    """
+
+    logger.info("Copying skinning from {} to {}".format(source_skin,
+                                                        target_skin))
+
+    # copy skin weights
+    copy_skin_weights(source_skin, target_skin)
 
 
 def update_transform(source, target):

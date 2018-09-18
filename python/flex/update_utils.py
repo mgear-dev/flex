@@ -186,8 +186,8 @@ def copy_map1_name(source, target):
         cmds.setAttr("{}.uvSet[0].uvSetName".format(target), source_uv_name,
                      type="string")
     except RuntimeError:
-        logger.debug("{} doesn not have uvs, skipping udpate map1 name".format(
-            target))
+        logger.debug("{} doesn't not have uvs, skipping udpate map1 name"
+                     .format(target))
         return
 
 
@@ -205,20 +205,15 @@ def copy_skin_weights(source_skin, target_skin):
     :type target_skin: str
     """
 
-    logger.info("Copying skinning from {} to {}".format(source_skin,
-                                                        target_skin))
-
     # copy skin command
     cmds.copySkinWeights(sourceSkin=source_skin, destinationSkin=target_skin,
                          surfaceAssociation="closestComponent", noMirror=True,
                          influenceAssociation=("label",
                                                "closestJoint",
                                                "oneToOne"))
-    # forces a refresh in order to correctly evaluate the skin node
-    # doing a dgeval or dgdirty did not created enough stable results are
-    # forcing the refresh
-    cmds.refresh()
 
+    # forces refresh
+    cmds.refresh()
 
 @timer
 def create_blendshapes_backup(source, target, nodes):
@@ -236,8 +231,8 @@ def create_blendshapes_backup(source, target, nodes):
     :param target: new shape node
     :type target: str
 
-    :return: a shape node containing the new blenshape targets
-    :rtype: str
+    :return: backup blendshape nodes
+    :rtype: list
     """
 
     logger.debug("Creating blendshapes backup")
@@ -260,7 +255,7 @@ def create_blendshapes_backup(source, target, nodes):
         if duplicate:
             nodes_copy.append(duplicate)
 
-    # creates wraped target shape
+    # creates wrapped target shape
     warp_target = create_duplicate(target, "{}_flex_bs_warpShape"
                                    .format(shape_name))
 
@@ -323,13 +318,49 @@ def create_blendshapes_backup(source, target, nodes):
                     transfer_node, idx))
 
         # adds blendshape node to nodes to return
-        return_nodes.append(transfer_node)
+        return_nodes.append("{}".format(transfer_node))
 
     # deletes backup process shapes
     cmds.delete(cmds.listRelatives(source_duplicate, parent=True),
                 cmds.listRelatives(warp_target, parent=True))
 
-    return return_nodes, target_duplicate
+    # forces refresh
+    cmds.refresh()
+
+    return return_nodes
+
+
+def create_deformers_backups(source, target, shape_orig, deformers):
+    """ Handles creating the correct backup shapes for the given deformers
+    
+    :param source: the shape containing the new shape
+    :type source: str
+
+    :param target: the shape containing the deformers
+    :type target: str
+    
+    :param shape_orig: the intermediate shape from the target shape
+    :type shape_orig: str
+    
+    :param deformers: deformers used on target
+    :type deformers: dict
+    """
+
+    # declare return values
+    bs_nodes = None
+    skin_node = None
+
+    # creates blendshapes nodes backup
+    if len(deformers["blendShape"]):
+        bs_nodes = create_blendshapes_backup(target, source,
+                                             deformers["blendShape"])
+
+    # creates skin backup shape
+    if len(deformers["skinCluster"]):
+        skin_node_backup = create_skincluster_backup(shape_orig,
+                                              deformers["skinCluster"][0])
+
+    return bs_nodes, skin_node
 
 
 def create_duplicate(shape, duplicate_name):
@@ -355,7 +386,7 @@ def create_duplicate(shape, duplicate_name):
 
 
 @timer
-def create_skin_backup(shape, skin_node):
+def create_skincluster_backup(shape, skin_node):
     """ Creates a skinning backup object
 
     :param shape: the shape node you want to duplicate (should use orig shape)
@@ -364,8 +395,8 @@ def create_skin_backup(shape, skin_node):
     :param skin_node: the given shape skin cluster node
     :type skin_node: str
 
-    :return: the duplicated shape and the skin cluster node with weights
-    :rtype: str, str
+    :return: the skin cluster node backup
+    :rtype: str
     """
 
     logger.info("Creating skin backup for {}".format(skin_node))
@@ -388,7 +419,9 @@ def create_skin_backup(shape, skin_node):
     # copy the given skin node weights to back up shape
     copy_skin_weights(skin_node, skin_holder[0])
 
-    return "{}".format(shape_duplicate), "{}".format(skin_holder[0])
+    return "{}".format(skin_holder[0])
+
+
 
 
 def create_wrap(source, target, intermediate=None):
@@ -441,6 +474,21 @@ def create_wrap(source, target, intermediate=None):
     return wrap_node
 
 
+def delete_transform_from_shape(shape):
+    """ Deletes the given shape transform and shape
+
+    :param shape: the shape node name
+    :type shape: str
+    """
+
+    if not shape:
+        return
+    try:
+        cmds.delete(cmds.listRelatives(shape, parent=True))
+    except RuntimeError:
+        return
+
+
 def filter_shape_orig(shape, intermediate):
     """ Filters whether the intermediate shape provided should be used or not
 
@@ -450,7 +498,7 @@ def filter_shape_orig(shape, intermediate):
     :type shape: str
 
     :param intermediate: the intermediate shape name
-    :type intemediate: str
+    :type intermediate: str
 
     :return: the valid intermediate shape
     :rtype: str
