@@ -8,7 +8,9 @@ flex.update module handles the updating rig process
 
 # imports
 from __future__ import absolute_import
+
 from maya import cmds
+
 from mgear.flex import logger
 from mgear.flex.attributes import BLENDSHAPE_TARGET
 from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
@@ -25,9 +27,11 @@ from mgear.flex.query import is_matching_bouding_box
 from mgear.flex.query import is_matching_count
 from mgear.flex.query import is_matching_type
 from mgear.flex.query import lock_unlock_attribute
-from mgear.flex.update_utils import add_attribute, copy_skin_weights
+from mgear.flex.update_utils import add_attribute
 from mgear.flex.update_utils import copy_map1_name
+from mgear.flex.update_utils import copy_skin_weights
 from mgear.flex.update_utils import create_deformers_backups
+from mgear.flex.update_utils import delete_transform_from_nodes
 from mgear.flex.update_utils import set_deformer_state
 from mgear.flex.update_utils import update_shape
 import pymel.core as pm
@@ -99,6 +103,10 @@ def update_blendshapes_nodes(source_nodes, target_nodes):
     :type target_nodes: list(str)
     """
 
+    if not source_nodes:
+        logger.error('No backup blendshapes found for {}'.format(target_nodes))
+        return
+
     for node in target_nodes:
         match_node = [x for x in source_nodes if node in x] or None
 
@@ -157,7 +165,6 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     # gets all deformers on the target shape (supported by flex)
     deformers = get_deformers(target)
 
-    # return when more than 1 skinCluster node is used on shape
     if len(deformers["skinCluster"]) > 1:
         logger.warning("Dual skinning is yet not supported. {} will be used"
                        .format(deformers["skinCluster"][0]))
@@ -166,24 +173,25 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     set_deformer_state(deformers, False)
 
     # creates deformers backups
-    bs_nodes, skin_node = create_deformers_backups(source, target, shape_orig,
-                                                   deformers)
-
+    bs_nodes, skin_nodes = create_deformers_backups(source, target, shape_orig,
+                                                    deformers)
     # updates target shape
     update_shape(source, shape_orig)
 
-    # copy skinning from backup
-    if skin_node:
-        update_skincluster_node(skin_node, deformers["skinCluster"][0])
+    # updates skinning nodes
+    update_skincluster_node(skin_nodes[0], deformers["skinCluster"][0])
 
-    if bs_nodes:
-        update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
+    # updates blendshapes nodes
+    update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
 
     # updates uv sets on target shape
     update_uvs_sets(target)
 
     # Turns all deformers envelope ON
     set_deformer_state(deformers, True)
+
+    # deletes backups
+    delete_transform_from_nodes([bs_nodes[0], skin_nodes[0]])
 
 
 def update_deformed_shape(source, target, mismatching_topology=True):
@@ -348,6 +356,10 @@ def update_skincluster_node(source_skin, target_skin):
     :param target_skin: the target skin cluster node name
     :type target_skin: str
     """
+
+    if not source_skin:
+        logger.error('No backup skinning found for {}'.format(target_skin))
+        return
 
     logger.info("Copying skinning from {} to {}".format(source_skin,
                                                         target_skin))
