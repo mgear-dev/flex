@@ -215,6 +215,7 @@ def copy_skin_weights(source_skin, target_skin):
     # forces refresh
     cmds.refresh()
 
+
 @timer
 def create_blendshapes_backup(source, target, nodes):
     """ Creates an updated backup for the given blendshapes nodes on source
@@ -420,8 +421,6 @@ def create_skincluster_backup(shape, skin_node):
     copy_skin_weights(skin_node, skin_holder[0])
 
     return "{}".format(skin_holder[0])
-
-
 
 
 def create_wrap(source, target, intermediate=None):
