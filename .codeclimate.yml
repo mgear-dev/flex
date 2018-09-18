@@ -3,7 +3,7 @@ plugins:
     enabled: true
     config: 
       python_version: 2
-      threshold: "B"
+      threshold: "C"
   pep8:
     enabled: true
 
