@@ -351,8 +351,8 @@ def create_deformers_backups(source, target, shape_orig, deformers):
     """
 
     # declare return values
-    bs_nodes = None
-    skin_nodes = None
+    bs_nodes = []
+    skin_nodes = []
 
     # creates blendshapes nodes backup
     if len(deformers["blendShape"]):
@@ -484,13 +484,12 @@ def delete_transform_from_nodes(nodes):
     """
 
     for node in nodes:
-        shape = [x for x in cmds.listHistory(node, future=True)
-                 if x not in cmds.listHistory(node, future=True, pdo=True)]
-
         try:
+            shape = [x for x in cmds.listHistory(node, future=True)
+                     if x not in cmds.listHistory(node, future=True, pdo=True)]
             transform = cmds.listRelatives(shape, parent=True)
             cmds.delete(transform)
-        except RuntimeError:
+        except ValueError:
             return
 
 
