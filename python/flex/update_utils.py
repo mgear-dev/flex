@@ -11,6 +11,7 @@ for the flex update process
 from maya import OpenMaya
 from maya import cmds
 from maya import mel
+
 from mgear.flex import logger
 from mgear.flex.attributes import BLENDSHAPE_TARGET
 from mgear.flex.decorators import timer
@@ -18,8 +19,8 @@ from mgear.flex.query import get_dependency_node
 from mgear.flex.query import get_prefix_less_name
 from mgear.flex.query import get_shape_orig
 from mgear.flex.query import get_shape_type_attributes
-from mgear.flex.query import is_matching_type
 from mgear.flex.query import get_temp_folder
+from mgear.flex.query import is_matching_type
 
 
 def add_attribute(source, target, attribute_name):
@@ -191,16 +192,17 @@ def copy_map1_name(source, target):
                      .format(target))
         return
 
+
 @timer
 def copy_cluster_weights(shape, weight_file, method="bilinear"):
     """ Copy cluster weights to the given shape from the given weight files
-    
+
     :param shape: the shape node name containing the cluster deformers
     :type shape: str
-    
+
     :param weight_file: containing the deformers and weight filter names
     :type weight_file: dict
-    
+
     :param method: method type that should be used when updating the weights
     :type method: str
     """
@@ -208,7 +210,7 @@ def copy_cluster_weights(shape, weight_file, method="bilinear"):
     # gets the temporary folder path
     temp_path = get_temp_folder()
     short_name = get_prefix_less_name(shape)
-    
+
     for node in weight_file:
         cmds.deformerWeights(weight_file[node], im=True, shape=short_name,
                              deformer=node, path=temp_path, method=method,
@@ -357,35 +359,36 @@ def create_blendshapes_backup(source, target, nodes):
 
 def create_clusters_backup(shape, nodes):
     """ Generates weight files for the given cluster nodes in the given shape
-    
+
     :param shape: the shape node name containing the cluster deformers nodes
     :type shape: str
-    
+
     :param nodes: the cluster nodes
     :type nodes: list
-    
+
     :return: cluster weight files names
     :rtype: dict
     """
-    
+
     logger.info("Creating cluster weights backup for {}".format(nodes))
 
     # gets the temp folder path
     temp_path = get_temp_folder()
-    
-    #prefix less shape name
+
+    # prefix less shape name
     shape = get_prefix_less_name(shape)
-    
+
     # dict for weights files
     weight_files = {}
 
     for node in nodes:
         cmds.deformerWeights('{}_{}.xml'.format(shape, node), export=True,
-                             vertexConnections=True, weightPrecision = 5,
+                             vertexConnections=True, weightPrecision=5,
                              shape=shape, deformer=node, path=temp_path)
         weight_files[node] = '{}_{}.xml'.format(shape, node)
 
     return weight_files
+
 
 def create_deformers_backups(source, target, shape_orig, deformers):
     """ Handles creating the correct backup shapes for the given deformers
@@ -416,11 +419,11 @@ def create_deformers_backups(source, target, shape_orig, deformers):
         bs_nodes = create_blendshapes_backup(target, source,
                                              deformers["blendShape"])
 
-    # creates skincluster nodes backup 
+    # creates skincluster nodes backup
     if len(deformers["skinCluster"]):
         skin_nodes = create_skincluster_backup(shape_orig,
                                                deformers["skinCluster"][0])
-    # creates clusters nodes backup 
+    # creates clusters nodes backup
     if len(deformers["cluster"]):
         cluster_nodes = create_clusters_backup(target, deformers["cluster"])
 
