@@ -8,13 +8,13 @@ and update functions of Flex
 
 # import
 from __future__ import absolute_import
-
 import math
 from maya import OpenMaya
 from maya import cmds
+import os
+import tempfile
 from mgear.flex import logger  # @UnusedImport
 from mgear.flex.decorators import timer  # @UnusedImport
-import os
 
 
 def get_clean_matching_shapes(source, target):
@@ -347,6 +347,16 @@ def get_shapes_from_group(group):
     return shapes
 
 
+def get_temp_folder():
+    """ Returns the user temporary folder in a Maya friendly matter
+
+    :return: temp folder path
+    :rtype: str
+    """
+
+    return tempfile.gettempdir().replace('\\', '/')
+
+
 def get_transform_selection():
     """ Gets the current dag object selection
 
@@ -396,7 +406,7 @@ def is_lock_attribute(element, attribute):
     return cmds.getAttr("{}.{}".format(element, attribute), lock=True)
 
 
-def is_matching_bouding_box(source, target, tolerance=0.001):
+def is_matching_bouding_box(source, target, tolerance=0.05):
     """ Checks if the source and target shape have the same bounding box
 
     :param source: source shape node
