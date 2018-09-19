@@ -28,6 +28,7 @@ from mgear.flex.query import is_matching_count
 from mgear.flex.query import is_matching_type
 from mgear.flex.query import lock_unlock_attribute
 from mgear.flex.update_utils import add_attribute
+from mgear.flex.update_utils import copy_cluster_weights
 from mgear.flex.update_utils import copy_map1_name
 from mgear.flex.update_utils import copy_skin_weights
 from mgear.flex.update_utils import create_deformers_backups
@@ -103,7 +104,10 @@ def update_blendshapes_nodes(source_nodes, target_nodes):
     :type target_nodes: list(str)
     """
 
-    if not source_nodes:
+    if not source_nodes and not target_nodes:
+        return
+
+    if not source_nodes and target_nodes:
         logger.error('No backup blendshapes found for {}'.format(target_nodes))
         return
 
@@ -147,6 +151,28 @@ def update_blendshapes_nodes(source_nodes, target_nodes):
                 cmds.disconnectAttr(source_attr, target_attr)
 
 
+def update_clusters_nodes(shape, weight_files):
+    """ Updates the given shape cluster weights using the given files
+
+    :param shape: the shape node name containing the cluster deformers
+    :type shape: str
+
+    :param weight_files: weight files names for each cluster deformer
+    :type weight_files: list(str)
+    """
+
+    if not shape and not weight_files:
+        return
+
+    if shape and not weight_files:
+        return
+
+    logger.info("Copying cluster weights on {}".format(shape))
+
+    # update cluster weights
+    copy_cluster_weights(shape, weight_files)
+
+
 @timer
 def update_deformed_mismatching_shape(source, target, shape_orig):
     """ Updates the target shape with the given source shape content
@@ -174,8 +200,10 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
     set_deformer_state(deformers, False)
 
     # creates deformers backups
-    bs_nodes, skin_nodes = create_deformers_backups(source, target, shape_orig,
-                                                    deformers)
+    bs_nodes, skin_nodes, cluster_nodes = create_deformers_backups(source,
+                                                                   target,
+                                                                   shape_orig,
+                                                                   deformers)
     # updates target shape
     update_shape(source, shape_orig)
 
@@ -184,6 +212,9 @@ def update_deformed_mismatching_shape(source, target, shape_orig):
 
     # updates blendshapes nodes
     update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
+
+    # update cluster nodes
+    update_clusters_nodes(target, cluster_nodes)
 
     # updates uv sets on target shape
     update_uvs_sets(target)
@@ -358,7 +389,10 @@ def update_skincluster_node(source_skin, target_skin):
     :type target_skin: str
     """
 
-    if not source_skin:
+    if not source_skin and not target_skin:
+        return
+
+    if not source_skin and target_skin:
         logger.error('No backup skinning found for {}'.format(target_skin))
         return
 
