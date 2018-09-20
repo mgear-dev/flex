@@ -1,10 +1,13 @@
 
 """ flex.attributes
 
-A simple module listing all attributes classifications inside Maya
+A simple module listing all attributes classifications inside Maya or a
+simplified verison of long attributes in maya
 
 :module: flex.attributes
 """
+
+BLENDSHAPE_TARGET = "{}.inputTarget[0].inputTargetGroup[{}].inputTargetItem"
 
 COMPONENT_DISPLAY_ATTRIBUTES = ["displayColors",
                                 "displayColorChannel",

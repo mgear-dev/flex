@@ -9,6 +9,8 @@ Contains the Flex Analyze interface
 
 # imports
 from PySide2 import QtWidgets, QtGui, QtCore
+
+from mgear.flex import logger
 from mgear.flex.colors import YELLOW
 from mgear.flex.query import get_resources_path
 
@@ -31,6 +33,8 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         """
         super(FlexAnalyzeDialog, self).__init__(parent=parent)
 
+        logger.debug("Analyze widget initialised")
+
         # sets window rules
         self.setObjectName(FLEX_ANALYZE_NAME)
         self.setWindowTitle("mGear: Flex analyze shapes")
@@ -45,6 +49,10 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         self.red_icon = QtGui.QIcon()
         image = QtGui.QPixmap("{}/red.png".format(get_resources_path()))
         self.red_icon.addPixmap(image)
+
+        self.yellow_icon = QtGui.QIcon()
+        image = QtGui.QPixmap("{}/yellow.png".format(get_resources_path()))
+        self.yellow_icon.addPixmap(image)
 
         # creates layout
         layout = QtWidgets.QVBoxLayout()
@@ -67,7 +75,7 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
 
         # creates the table
         self.table_widget = QtWidgets.QTableWidget()
-        self.table_widget.setColumnCount(5)
+        self.table_widget.setColumnCount(6)
         self.table_widget.setIconSize(QtCore.QSize(20, 20))
 
         # adds headers
@@ -75,7 +83,8 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
                                                      "Target",
                                                      "Type",
                                                      "Count",
-                                                     "B-Box"])
+                                                     "B-Box",
+                                                     "Result"])
 
         # setup headers look and feel
         h_header = self.table_widget.horizontalHeader()
@@ -86,6 +95,7 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         h_header.setSectionResizeMode(2, h_header.Fixed)
         h_header.setSectionResizeMode(3, h_header.Fixed)
         h_header.setSectionResizeMode(4, h_header.Fixed)
+        h_header.setSectionResizeMode(5, h_header.Fixed)
         h_header.setSectionsClickable(False)
 
         # hides vertical header
@@ -139,6 +149,20 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
             bbox_item.setIcon(self.red_icon)
         bbox_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
+        # result item
+        result_item = QtWidgets.QTableWidgetItem()
+        result_item.setFlags(QtCore.Qt.ItemIsEnabled)
+        if source not in count and source not in bbox and source not in match:
+            result_item.setIcon(self.green_icon)
+        if source in count and source not in bbox:
+            result_item.setIcon(self.yellow_icon)
+        if source in count and source in bbox:
+            result_item.setIcon(self.red_icon)
+        if source in bbox and source not in count:
+            result_item.setIcon(self.green_icon)
+        if source in match:
+            result_item.setIcon(self.red_icon)
+
         # insert items
         self.table_widget.insertRow(0)
         self.table_widget.setRowHeight(0, 19)
@@ -147,3 +171,4 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         self.table_widget.setItem(0, 2, match_item)
         self.table_widget.setItem(0, 3, count_item)
         self.table_widget.setItem(0, 4, bbox_item)
+        self.table_widget.setItem(0, 5, result_item)

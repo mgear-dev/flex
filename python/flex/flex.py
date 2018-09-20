@@ -12,12 +12,15 @@ from __future__ import absolute_import
 from PySide2 import QtWidgets
 from maya import OpenMayaUI, cmds
 from shiboken2 import wrapInstance
-
+from mgear.flex import logger
 from mgear.flex.analyze import analyze_groups
 from mgear.flex.analyze_widget import FLEX_ANALYZE_NAME
 from mgear.flex.analyze_widget import FlexAnalyzeDialog
 from mgear.flex.decorators import finished_running
+from mgear.flex.decorators import hold_selection
+from mgear.flex.decorators import isolate_view
 from mgear.flex.decorators import set_focus
+from mgear.flex.decorators import show_view
 from mgear.flex.flex_widget import FLEX_UI_NAME
 from mgear.flex.flex_widget import FlexDialog
 from mgear.flex.query import get_transform_selection, get_parent
@@ -40,6 +43,16 @@ class Flex(object):
         self.__source_group = None
         self.__target_group = None
         self.__user_attributes = True
+        self.__update_options = {"deformed": True,
+                                 "transformed": True,
+                                 "object_display": False,
+                                 "user_attributes": True,
+                                 "render_attributes": True,
+                                 "component_display": False,
+                                 "plugin_attributes": False,
+                                 "hold_transform_values": True,
+                                 "mismatched_topologies": True,
+                                 }
 
     def __check_source_and_target_properties(self):
         """ Raises ValueError if source_group and target_group are not set
@@ -68,6 +81,7 @@ class Flex(object):
            * render_attributes
            * plugin_attributes
            * hold_transform_values
+           * mismatched_topologies
         """
 
         # gather ui options
@@ -87,6 +101,8 @@ class Flex(object):
             self.ui.plugin_attributes_check.isChecked())
         ui_options["hold_transform_values"] = (
             self.ui.transformed_hold_check.isChecked())
+        ui_options["mismatched_topologies"] = (
+            self.ui.mismatched_topologies.isChecked())
 
         return ui_options
 
@@ -143,7 +159,7 @@ class Flex(object):
         if value and not is_valid_group(value):
             raise ValueError("The given group ({}) is not a valid Maya "
                              "transform node or it simply doesn't exist on "
-                             " your current Maya session".format(value))
+                             "your current Maya session".format(value))
 
         if self.source_group == self.target_group and not value:
             raise ValueError("The given source and target objects are the same"
@@ -381,13 +397,38 @@ class Flex(object):
         :type value: str
         """
 
+        # check if values are correct
+        self.__property_check(value)
+
         # set value
         self.__target_group = value
 
         # ui update
         self.__update_ui()
 
+    @property
+    def update_options(self):
+        """ Flex update options (property)
+
+        .. note:: This are the default update options
+                  {
+                   "deformed": True,
+                   "transformed": True,
+                   "object_display": False,
+                   "user_attributes": True,
+                   "render_attributes": True,
+                   "component_display": False,
+                   "plugin_attributes": False,
+                   "hold_transform_values": True,
+                  }
+        """
+
+        return self.__update_options
+
+    @show_view
     @finished_running
+    @hold_selection
+    @isolate_view
     def update_rig(self, run_options=None):
         """ Launches the rig update process
 
@@ -404,12 +445,19 @@ class Flex(object):
         # check if values are correct
         self.__property_check(None)
 
-        #########################
-        # NEED TO CHANGE THIS AND TRY STATEMENT THE UI EXISTANCE
-        #########################
         if not run_options:
-            run_options = self.__gather_ui_options()
+            try:
+                run_options = self.__gather_ui_options()
+            except AttributeError:
+                run_options = self.update_options
 
         # triggers the update
-        update_rig(source=self.source_group, target=self.target_group,
-                   options=run_options)
+        try:
+            update_rig(source=self.source_group, target=self.target_group,
+                       options=run_options)
+        except Exception as error:
+            logger.critical("-" * 90)
+            logger.critical("FLEX RAN WITH ERROR(S). Please contact mGear's "
+                            "developers.\n".format(error), exc_info=True)
+            logger.critical("-" * 90)
+            return

@@ -9,86 +9,33 @@ flex.update module handles the updating rig process
 # imports
 from __future__ import absolute_import
 
-import logging
-from maya import OpenMaya
 from maya import cmds
-from maya import mel
 
+from mgear.flex import logger
+from mgear.flex.attributes import BLENDSHAPE_TARGET
 from mgear.flex.attributes import COMPONENT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import OBJECT_DISPLAY_ATTRIBUTES
 from mgear.flex.attributes import RENDER_STATS_ATTRIBUTES
 from mgear.flex.decorators import timer
-from mgear.flex.query import get_dependency_node
+from mgear.flex.query import get_deformers
 from mgear.flex.query import get_matching_shapes_from_group
 from mgear.flex.query import get_missing_shapes_from_group
 from mgear.flex.query import get_parent
 from mgear.flex.query import get_shape_orig
-from mgear.flex.query import get_shape_type_attributes
 from mgear.flex.query import is_lock_attribute
+from mgear.flex.query import is_matching_bouding_box
+from mgear.flex.query import is_matching_count
+from mgear.flex.query import is_matching_type
 from mgear.flex.query import lock_unlock_attribute
+from mgear.flex.update_utils import add_attribute
+from mgear.flex.update_utils import copy_cluster_weights
+from mgear.flex.update_utils import copy_map1_name
+from mgear.flex.update_utils import copy_skin_weights
+from mgear.flex.update_utils import create_deformers_backups
+from mgear.flex.update_utils import delete_transform_from_nodes
+from mgear.flex.update_utils import set_deformer_state
+from mgear.flex.update_utils import update_shape
 import pymel.core as pm
-
-logger = logging.getLogger("mGear: Flex")
-logger.setLevel(logging.DEBUG)
-
-
-def add_attribute(source, target, attribute_name):
-    """ Adds the given attribute to the given object
-
-    .. note:: This is a generic method to **addAttr** all type of attributes
-              inside Maya. Using the getAddAttrCmd from the MFnAttribute class
-              allows avoiding to create one method for each type of attribute
-              inside Maya as the addAttr command will differ depending on the
-              attribute type and data.
-
-    :param source: the maya source node
-    :type source: str
-
-    :param target: the maya target node
-    :type target: str
-
-    :param attribute_name: the attribute name to add in the given element
-    :type attribute_name: str
-    """
-
-    # check if attribute already exists on target
-    if cmds.objExists("{}.{}".format(target, attribute_name)):
-        return
-
-    # gets the given attribute_name plug attribute
-    m_depend_node = get_dependency_node(source)
-    m_attribute = m_depend_node.findPlug(attribute_name).attribute()
-
-    # gets the addAttr command from the MFnAttribute function
-    fn_attr = OpenMaya.MFnAttribute(m_attribute)
-    add_attr_cmd = fn_attr.getAddAttrCmd()[1:-1]
-
-    # creates the attribute on the target
-    mel.eval("{} {}".format(add_attr_cmd, target))
-
-
-def clean_uvs_sets(shape):
-    """ Deletes all uv sets besides map1
-
-    This is used to be able to update target shapes with whatever the source
-    shape has. This is only relevant for mesh shape types.
-
-    :param shape: The Maya shape node
-    :type shape: string
-    """
-
-    # check if shape is not a mesh type node
-    if cmds.objectType(shape) != "mesh":
-        return
-
-    # gets uvs indices
-    uvs_idx = cmds.getAttr("{}.uvSet".format(shape), multiIndices=True)
-
-    # deletes the extra indices
-    for idx in uvs_idx:
-        if idx:
-            cmds.setAttr("{}.uvSet[{}]".format(shape, idx), lock=False)
-            cmds.removeMultiInstance("{}.uvSet[{}]".format(shape, idx))
 
 
 def update_attribute(source, target, attribute_name):
@@ -121,8 +68,8 @@ def update_attribute(source, target, attribute_name):
     lock = is_lock_attribute(target, attribute_name)
 
     if not lock_unlock_attribute(target, attribute_name, False):
-        logger.error("The given attribute ({}) can't be updated on {}"
-                     .format(attribute_name, target))
+        logger.warning("The given attribute {} can't be updated on {}"
+                       .format(attribute_name, target))
         return
 
     # creates pymel nodes to get and apply attributes from
@@ -139,16 +86,95 @@ def update_attribute(source, target, attribute_name):
         py_target.attr(attribute_name).set(attr_value)
 
     except Exception as e:
-        logger.error("The given attribute ({}) can't be updated on {}"
-                     .format(attribute_name, target))
-        print e
-        return
+        logger.warning("The given attribute ({}) can't be updated on {}"
+                       .format(attribute_name, target))
+        return e
 
     if lock:
         lock_unlock_attribute(target, attribute_name, True)
 
 
-def update_deformed_shape(source, target):
+def update_blendshapes_nodes(source_nodes, target_nodes):
+    """ Update all target shapes with the given source shapes
+
+    :param source_nodes: source blendshape nodes
+    :type source_nodes: list(str)
+
+    :param target_nodes: target blendshape nodes
+    :type target_nodes: list(str)
+    """
+
+    if not source_nodes and not target_nodes:
+        return
+
+    if not source_nodes and target_nodes:
+        logger.error('No backup blendshapes found for {}'.format(target_nodes))
+        return
+
+    for node in target_nodes:
+        # finds matching node name on the source nodes
+        match_node = [x for x in source_nodes if node in x] or None
+
+        if not match_node:
+            continue
+
+        # gets source and targets indices
+        targets_idx = cmds.getAttr("{}.weight".format(node), multiIndices=True)
+        source_idx = cmds.getAttr("{}.weight".format(match_node[0]),
+                                  multiIndices=True)
+
+        for idx in targets_idx:
+            # blendshape target name
+            target_name = cmds.aliasAttr("{}.weight[{}]".format(node, idx),
+                                         query=True)
+
+            # gets corresponding source idx
+            match_idx = [x for x in source_idx if cmds.aliasAttr(
+                "{}.weight[{}]".format(match_node[0], x),
+                query=True) == target_name]
+
+            if not match_idx:
+                continue
+
+            # input target group attribute
+            source_name = (BLENDSHAPE_TARGET.format(match_node[0],
+                                                    match_idx[0]))
+            target_name = (BLENDSHAPE_TARGET.format(node, idx))
+
+            # loop on actual targets and in-between targets
+            for target in cmds.getAttr(target_name, multiIndices=True):
+                # target attribute name
+                source_attr = "{}[{}]".format(source_name, target)
+                target_attr = "{}[{}]".format(target_name, target)
+
+                cmds.connectAttr(source_attr, target_attr, force=True)
+                cmds.disconnectAttr(source_attr, target_attr)
+
+
+def update_clusters_nodes(shape, weight_files):
+    """ Updates the given shape cluster weights using the given files
+
+    :param shape: the shape node name containing the cluster deformers
+    :type shape: str
+
+    :param weight_files: weight files names for each cluster deformer
+    :type weight_files: list(str)
+    """
+
+    if not shape and not weight_files:
+        return
+
+    if shape and not weight_files:
+        return
+
+    logger.info("Copying cluster weights on {}".format(shape))
+
+    # update cluster weights
+    copy_cluster_weights(shape, weight_files)
+
+
+@timer
+def update_deformed_mismatching_shape(source, target, shape_orig):
     """ Updates the target shape with the given source shape content
 
     :param source: maya shape node
@@ -156,27 +182,100 @@ def update_deformed_shape(source, target):
 
     :param target: maya shape node
     :type target: str
+
+    :param shape_orig: shape orig on the target shape
+    :type shape_orig: str
     """
 
-    logger.info("Update deformed shapes options running...")
+    logger.debug("Running update deformed mismatched shapes")
+
+    # gets all deformers on the target shape (supported by flex)
+    deformers = get_deformers(target)
+
+    if len(deformers["skinCluster"]) > 1:
+        logger.warning("Dual skinning is yet not supported. {} will be used"
+                       .format(deformers["skinCluster"][0]))
+
+    # Turns all deformers envelope off
+    set_deformer_state(deformers, False)
+
+    # creates deformers backups
+    bs_nodes, skin_nodes, cluster_nodes = create_deformers_backups(source,
+                                                                   target,
+                                                                   shape_orig,
+                                                                   deformers)
+    # updates target shape
+    update_shape(source, shape_orig)
+
+    # updates skinning nodes
+    update_skincluster_node(skin_nodes, deformers["skinCluster"])
+
+    # updates blendshapes nodes
+    update_blendshapes_nodes(bs_nodes, deformers["blendShape"])
+
+    # update cluster nodes
+    update_clusters_nodes(target, cluster_nodes)
+
+    # updates uv sets on target shape
+    update_uvs_sets(target)
+
+    # Turns all deformers envelope ON
+    set_deformer_state(deformers, True)
+
+    # deletes backups
+    delete_transform_from_nodes(set(bs_nodes).union(skin_nodes))
+
+
+def update_deformed_shape(source, target, mismatching_topology=True):
+    """ Updates the target shape with the given source shape content
+
+    :param source: maya shape node
+    :type source: str
+
+    :param target: maya shape node
+    :type target: str
+
+    :param mismatching_topology: ignore or not mismatching topologies
+    :type mismatching_topology: bool
+    """
 
     # gets orig shape
     deform_origin = get_shape_orig(target)
 
+    # returns as target is not a deformed shape
     if not deform_origin:
         return
 
-    logger.info("Deformed shape found: {}".format(target))
+    logger.debug("Deformed shape found: {}".format(target))
 
-    if cmds.objectType(source) != cmds.objectType(target):
+    # returns if source and target shapes don't match
+    if not is_matching_type(source, target):
         logger.warning("{} and {} don't have same shape type. passing..."
                        .format(source, target))
         return
 
+    # returns if vertices count isn't equal and mismatching isn't requested
+    if not mismatching_topology and not is_matching_count(source, target):
+        logger.warning("{} and {} don't have same shape vertices count."
+                       "passing...".format(source, target))
+        return
+
     deform_origin = deform_origin[0]
+
+    # updates map1 name
+    copy_map1_name(source, deform_origin)
+
+    # updates on mismatching topology but same bounding box
+    if mismatching_topology and not is_matching_count(source, target) and (
+            is_matching_bouding_box(source, target)):
+        update_deformed_mismatching_shape(source, target, deform_origin)
+        return
 
     # update the shape
     update_shape(source, deform_origin)
+
+    # update uvs set on target
+    update_uvs_sets(target)
 
 
 def update_maya_attributes(source, target, attributes):
@@ -206,9 +305,10 @@ def update_plugin_attributes(source, target):
     :type target: str
     """
 
-    source_attrs = cmds.listAttr(source, fromPlugin=True)
-    taget_attrs = cmds.listAttr(target, fromPlugin=True)
+    source_attrs = cmds.listAttr(source, fromPlugin=True) or []
+    taget_attrs = cmds.listAttr(target, fromPlugin=True) or []
 
+    logger.debug("Updating  plugin attributes on {}".format(target))
     for attribute in source_attrs:
         if attribute in taget_attrs:
             update_attribute(source, target, attribute)
@@ -231,13 +331,17 @@ def update_rig(source, target, options):
     # gets the matching shapes
     matching_shapes = get_matching_shapes_from_group(source, target)
 
+    logger.info("-" * 90)
     logger.info("Matching shapes: {}" .format(matching_shapes))
+    logger.info("-" * 90)
 
     for shape in matching_shapes:
-        logger.info("Updating: {}".format(matching_shapes[shape]))
+        logger.debug("-" * 90)
+        logger.debug("Updating: {}".format(matching_shapes[shape]))
 
         if options["deformed"]:
-            update_deformed_shape(shape, matching_shapes[shape])
+            update_deformed_shape(shape, matching_shapes[shape],
+                                  options["mismatched_topologies"])
 
         if options["transformed"]:
             update_transformed_shape(shape, matching_shapes[shape],
@@ -247,55 +351,56 @@ def update_rig(source, target, options):
             update_user_attributes(shape, matching_shapes[shape])
 
         if options["object_display"]:
+            logger.debug("Updating object display attributes on {}"
+                         .format(matching_shapes[shape]))
             update_maya_attributes(shape, matching_shapes[shape],
                                    OBJECT_DISPLAY_ATTRIBUTES)
 
         if options["component_display"]:
+            logger.debug("Updating component display attributes on {}"
+                         .format(matching_shapes[shape]))
             update_maya_attributes(shape, matching_shapes[shape],
                                    COMPONENT_DISPLAY_ATTRIBUTES)
 
         if options["render_attributes"]:
+            logger.debug("Updating render attributes on {}"
+                         .format(matching_shapes[shape]))
             update_maya_attributes(shape, matching_shapes[shape],
                                    RENDER_STATS_ATTRIBUTES)
 
         if options["plugin_attributes"]:
             update_plugin_attributes(shape, matching_shapes[shape])
 
+    logger.info("-" * 90)
     logger.info("Source missing shapes: {}" .format(
         get_missing_shapes_from_group(source, target)))
     logger.info("Target missing shapes: {}" .format(
         get_missing_shapes_from_group(target, source)))
+    logger.info("-" * 90)
 
 
-def update_shape(source, target):
-    """ Connect the shape output from source to the input shape on target
+def update_skincluster_node(source_skin, target_skin):
+    """ Updates the skin weights on the given target skin from the source skin
 
-    :param source: maya shape node
-    :type source: str
+    :param source_skin: the source skin cluster node name
+    :type source_skin: str
 
-    :param target: maya shape node
-    :type target: str
+    :param target_skin: the target skin cluster node name
+    :type target_skin: str
     """
 
-    # clean uvs on mesh nodes
-    clean_uvs_sets(target)
+    if not source_skin and not target_skin:
+        return
 
-    # get attributes names
-    attributes = get_shape_type_attributes(source)
+    if not source_skin and target_skin:
+        logger.error('No backup skinning found for {}'.format(target_skin))
+        return
 
-    logger.info("Updating shape: {} using --> {}".format(target, source))
+    logger.info("Copying skinning from {} to {}".format(source_skin[0],
+                                                        target_skin))
 
-    # updates the shape
-    cmds.connectAttr("{}.{}".format(source, attributes["output"]),
-                     "{}.{}".format(target, attributes["input"]),
-                     force=True)
-
-    # forces shape evaluation to achieve the update
-    cmds.dgeval("{}.{}".format(target, attributes["output"]))
-
-    # finish shape update
-    cmds.disconnectAttr("{}.{}".format(source, attributes["output"]),
-                        "{}.{}".format(target, attributes["input"]))
+    # copy skin weights
+    copy_skin_weights(source_skin[0], target_skin[0])
 
 
 def update_transform(source, target):
@@ -310,6 +415,9 @@ def update_transform(source, target):
     :param target: maya shape node
     :type target: str
     """
+
+    logger.debug("Updating transform node on {} from {}".format(target,
+                                                                source))
 
     # create duplicate of the source transform
     holder = cmds.duplicate(source, parentOnly=True,
@@ -347,14 +455,12 @@ def update_transformed_shape(source, target, hold_transform):
     :type hold_transform: bool
     """
 
-    logger.info("Update transformed shapes options running...")
-
     deform_origin = get_shape_orig(target)
 
     if deform_origin:
         return
 
-    logger.info("Transformed shape found: {}".format(target))
+    logger.debug("Transformed shape found: {}".format(target))
 
     # maintain transform on target
     if hold_transform:
@@ -380,7 +486,12 @@ def update_user_attributes(source, target):
     """
 
     # get user defined attributes
-    user_attributes = cmds.listAttr(source, userDefined=True) or []
+    user_attributes = cmds.listAttr(source, userDefined=True)
+
+    if not user_attributes:
+        return
+
+    logger.debug("Updating user attributes on {}".format(target))
 
     # loop on user defined attributes if any to ---> addAttr
     for attr in user_attributes:
@@ -389,6 +500,16 @@ def update_user_attributes(source, target):
 
     # loop on user defined attributes if any to ---> setAttr
     for attr in user_attributes:
-
         # updates the attribute values
         update_attribute(source, target, attr)
+
+
+def update_uvs_sets(shape):
+    """ Forces a given mesh shape uvs to update
+    """
+
+    if cmds.objectType(shape) != "mesh":
+        return
+
+    # forces uv refresh
+    cmds.setAttr("{}.outForceNodeUVUpdate ".format(shape), True)

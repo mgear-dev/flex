@@ -8,37 +8,13 @@ and update functions of Flex
 
 # import
 from __future__ import absolute_import
-
 import math
 from maya import OpenMaya
 from maya import cmds
 import os
-
+import tempfile
+from mgear.flex import logger  # @UnusedImport
 from mgear.flex.decorators import timer  # @UnusedImport
-
-
-# flex imports
-def get_dependency_node(element):
-    """ Returns a Maya MFnDependencyNode from the given element
-
-    :param element: Maya node to return a dependency node class object
-    :type element: string
-
-    :return: the element in a Maya MFnDependencyNode object
-    :rtype: MFnDependencyNode
-    """
-
-    # adds the elements into an maya selection list
-    m_selectin_list = OpenMaya.MSelectionList()
-    m_selectin_list.add(element)
-
-    # creates an MObject
-    m_object = OpenMaya.MObject()
-
-    # gets the MObject from the list
-    m_selectin_list.getDependNode(0, m_object)
-
-    return OpenMaya.MFnDependencyNode(m_object)
 
 
 def get_clean_matching_shapes(source, target):
@@ -65,7 +41,55 @@ def get_clean_matching_shapes(source, target):
     return sources_dict, targets_dict
 
 
-# @timer
+def get_deformers(shape):
+    """ Returns a dict with each deformer found on the given shape
+
+    :param shape: the shape node name
+    :type shape: str
+
+    :return: the deformers found on shape sorted by type
+    :rtype: dict
+    """
+
+    # gets all deformers used the target shape
+    deformers_list = cmds.findDeformers(shape)
+    deformers = {"skinCluster": [], "blendShape": [], "cluster": []}
+
+    # filter the deformers by type
+    for deformer in deformers_list:
+        if cmds.objectType(deformer) == "skinCluster":
+            deformers["skinCluster"].append(deformer)
+        if cmds.objectType(deformer) == "blendShape":
+            deformers["blendShape"].append(deformer)
+        if cmds.objectType(deformer) == "cluster":
+                    deformers["cluster"].append(deformer)
+
+    return deformers
+
+
+def get_dependency_node(element):
+    """ Returns a Maya MFnDependencyNode from the given element
+
+    :param element: Maya node to return a dependency node class object
+    :type element: string
+
+    :return: the element in a Maya MFnDependencyNode object
+    :rtype: MFnDependencyNode
+    """
+
+    # adds the elements into an maya selection list
+    m_selectin_list = OpenMaya.MSelectionList()
+    m_selectin_list.add(element)
+
+    # creates an MObject
+    m_object = OpenMaya.MObject()
+
+    # gets the MObject from the list
+    m_selectin_list.getDependNode(0, m_object)
+
+    return OpenMaya.MFnDependencyNode(m_object)
+
+
 def get_matching_shapes(source_shapes, target_shapes):
     """ Returns the matching shapes
 
@@ -117,7 +141,6 @@ def get_matching_shapes_from_group(source, target):
     return get_matching_shapes(sources_dict, targets_dict)
 
 
-# @timer
 def get_missing_shapes(source_shapes, target_shapes):
     """ Returns the missing shapes
 
@@ -170,7 +193,19 @@ def get_parent(element):
                               type="transform")
 
 
-# @timer
+def get_prefix_less_name(element):
+    """ Returns a prefix-less name
+
+    :param elements: element top use on the search
+    :type elements: str
+
+    :return: The prefix-less name
+    :rtype: str
+    """
+
+    return element.split("|")[-1].split(":")[-1]
+
+
 def get_prefix_less_dict(elements):
     """ Returns a dict containing each element with a stripped prefix
 
@@ -206,7 +241,6 @@ def get_resources_path():
     return "{}/resources".format(file_dir)
 
 
-# @timer
 def get_shape_orig(shape):
     """ Finds the orig (intermediate shape) on the given shape
 
@@ -266,8 +300,12 @@ def get_shape_type_attributes(shape):
 
     # set the default values for a mesh node type
     shape_attributes["points"] = "pnts"
-    shape_attributes["input"] = "inMesh"
-    shape_attributes["output"] = "outMesh"
+    shape_attributes["input"] = "{}".format(cmds.listHistory(
+        shape, query=True, historyAttr=True)[0].split(".")[-1])
+    shape_attributes["output"] = "{}".format(cmds.listHistory(
+        shape, query=True, futureLocalAttr=True)[0].split(".")[-1])
+    shape_attributes["output_world"] = "{}".format(cmds.listHistory(
+        shape, query=True, futureWorldAttr=True)[0].split(".")[-1])
     shape_attributes["p_axes"] = ("pntx", "pnty", "pntz")
 
     if cmds.objectType(shape) == "nurbsSurface" or (cmds.objectType(shape) ==
@@ -275,14 +313,11 @@ def get_shape_type_attributes(shape):
 
         # set the default values for a nurbs node type
         shape_attributes["points"] = "controlPoints"
-        shape_attributes["input"] = "create"
-        shape_attributes["output"] = "local"
         shape_attributes["p_axes"] = ("xValue", "yValue", "zValue")
 
     return shape_attributes
 
 
-# @timer
 def get_shapes_from_group(group):
     """ Gets all object shapes existing inside the given group
 
@@ -312,7 +347,16 @@ def get_shapes_from_group(group):
     return shapes
 
 
-# @timer
+def get_temp_folder():
+    """ Returns the user temporary folder in a Maya friendly matter
+
+    :return: temp folder path
+    :rtype: str
+    """
+
+    return tempfile.gettempdir().replace('\\', '/')
+
+
 def get_transform_selection():
     """ Gets the current dag object selection
 
@@ -362,7 +406,7 @@ def is_lock_attribute(element, attribute):
     return cmds.getAttr("{}.{}".format(element, attribute), lock=True)
 
 
-def is_matching_bouding_box(source, target, tolerance=0.001):
+def is_matching_bouding_box(source, target, tolerance=0.05):
     """ Checks if the source and target shape have the same bounding box
 
     :param source: source shape node
@@ -377,6 +421,12 @@ def is_matching_bouding_box(source, target, tolerance=0.001):
     :return: If source and target matches their bounding box
     :rtype: bool
     """
+
+    # gets orig shape if deformed shape
+    orig_shape = get_shape_orig(target)
+
+    if orig_shape:
+        target = orig_shape[0]
 
     # get min bounding box vectors
     src_min = cmds.getAttr("{}.boundingBoxMin".format(source))[0]
