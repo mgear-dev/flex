@@ -12,6 +12,7 @@ from __future__ import absolute_import
 from PySide2 import QtWidgets
 from maya import OpenMayaUI, cmds
 from shiboken2 import wrapInstance
+from mgear.flex import logger
 from mgear.flex.analyze import analyze_groups
 from mgear.flex.analyze_widget import FLEX_ANALYZE_NAME
 from mgear.flex.analyze_widget import FlexAnalyzeDialog
@@ -451,5 +452,12 @@ class Flex(object):
                 run_options = self.update_options
 
         # triggers the update
-        update_rig(source=self.source_group, target=self.target_group,
-                   options=run_options)
+        try:
+            update_rig(source=self.source_group, target=self.target_group,
+                       options=run_options)
+        except Exception as error:
+            logger.critical("-" * 90)
+            logger.critical("FLEX RAN WITH ERROR(S). Please contact mGear's "
+                            "developers.\n".format(error), exc_info=True)
+            logger.critical("-" * 90)
+            return

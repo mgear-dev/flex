@@ -185,10 +185,12 @@ class FlexDialog(QtWidgets.QDialog):
         self.render_attributes_check = QtWidgets.QCheckBox("Render Attributes")
         self.render_attributes_check.setChecked(True)
 
-        # vertex colours
-        self.vertex_colours_check = QtWidgets.QCheckBox("Vertex Colours")
-        self.vertex_colours_check.setChecked(True)
-        self.vertex_colours_check.setEnabled(False)
+        # =====================================================================
+        # # vertex colours
+        # self.vertex_colours_check = QtWidgets.QCheckBox("Vertex Colours")
+        # self.vertex_colours_check.setChecked(True)
+        # self.vertex_colours_check.setEnabled(False)
+        # =====================================================================
 
         # Transformed & Deformed layout
         t_n_d_widget = QtWidgets.QWidget()
@@ -219,7 +221,7 @@ class FlexDialog(QtWidgets.QDialog):
         grid_layout.addWidget(self.user_attributes_check, 0, 0, 1, 1)
         grid_layout.addWidget(self.plugin_attributes_check, 0, 1, 1, 1)
         grid_layout.addWidget(self.render_attributes_check, 0, 2, 1, 1)
-        grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
+#         grid_layout.addWidget(self.vertex_colours_check, 1, 2, 1, 1)
         grid_layout.addWidget(self.display_attributes_check, 1, 0, 1, 1)
         grid_layout.addWidget(self.component_attributes_check, 1, 1, 1, 1)
         grid_layout.addWidget(t_n_d_widget, 2, 0, 1, 3)
