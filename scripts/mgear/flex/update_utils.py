@@ -231,9 +231,21 @@ def copy_skin_weights(source_skin, target_skin):
     :type target_skin: str
     """
 
+    # gets the shape back from the source_skin and target_skin
+    # need to do this as providing the sourceSkin and destinationSkin arguments
+    # to the copySkinWeights command does not update correctly the shapes
+
+    source_shape = cmds.ls(cmds.listHistory("{}.outputGeometry".format(
+                           source_skin), pdo=False, future=True), dag=True,
+                           noIntermediate=True)
+    target_shape = cmds.ls(cmds.listHistory(
+                           "{}.outputGeometry".format(target_skin),
+                           pdo=False, future=True), dag=True,
+                           noIntermediate=True)
+    cmds.select(source_shape, target_shape)
+
     # copy skin command
-    cmds.copySkinWeights(sourceSkin=source_skin, destinationSkin=target_skin,
-                         surfaceAssociation="closestComponent", noMirror=True,
+    cmds.copySkinWeights(surfaceAssociation="closestPoint", noMirror=True,
                          influenceAssociation=("label",
                                                "closestJoint",
                                                "oneToOne"))

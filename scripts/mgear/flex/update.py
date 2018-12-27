@@ -265,9 +265,8 @@ def update_deformed_shape(source, target, mismatching_topology=True):
     # updates map1 name
     copy_map1_name(source, deform_origin)
 
-    # updates on mismatching topology but same bounding box
-    if mismatching_topology and not is_matching_count(source, target) and (
-            is_matching_bouding_box(source, target)):
+    # updates on mismatching topology
+    if mismatching_topology and not is_matching_count(source, target):
         update_deformed_mismatching_shape(source, target, deform_origin)
         return
 

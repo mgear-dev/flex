@@ -428,7 +428,6 @@ class Flex(object):
     @show_view
     @finished_running
     @hold_selection
-    @isolate_view
     def update_rig(self, run_options=None):
         """ Launches the rig update process
 
