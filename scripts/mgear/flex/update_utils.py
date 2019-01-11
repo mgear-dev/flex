@@ -212,6 +212,8 @@ def copy_cluster_weights(shape, weight_file, method="bilinear"):
     short_name = get_prefix_less_name(shape)
 
     for node in weight_file:
+        if not weight_file[node]:
+            continue
         cmds.deformerWeights(weight_file[node], im=True, shape=short_name,
                              deformer=node, path=temp_path, method=method,
                              vertexConnections=True)
@@ -394,6 +396,13 @@ def create_clusters_backup(shape, nodes):
     weight_files = {}
 
     for node in nodes:
+        # If there is not weights creating the deformer maps is useless
+        try:
+            cmds.getAttr("{}.weightList[0].weights".format(node))
+        except RuntimeError:
+            weight_files[node] = None
+            continue
+        # Creates the weight map if weights are found on shape points
         cmds.deformerWeights('{}_{}.xml'.format(shape, node), export=True,
                              vertexConnections=True, weightPrecision=5,
                              shape=shape, deformer=node, path=temp_path)
