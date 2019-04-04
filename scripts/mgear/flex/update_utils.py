@@ -244,6 +244,13 @@ def copy_skin_weights(source_skin, target_skin):
                            "{}.outputGeometry".format(target_skin),
                            pdo=False, future=True), dag=True,
                            noIntermediate=True)
+
+    # checks if source and target shapes list are bigger than 1
+    if len(source_shape) > 1:
+        source_shape = source_shape[0]
+    if len(target_shape) > 1:
+        target_shape = target_shape[0]
+
     cmds.select(source_shape, target_shape)
 
     # copy skin command
