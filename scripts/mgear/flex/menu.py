@@ -10,7 +10,6 @@ Flex menu handles adding the Flex menu item inside the Maya mGear menu.
 from __future__ import absolute_import
 from maya import cmds
 import mgear
-from mgear.flex.flex import Flex
 
 
 def install():
@@ -19,12 +18,11 @@ def install():
 
     cmds.setParent(mgear.menu_id, menu=True)
     cmds.menuItem(divider=True)
-    cmds.menuItem(label="Flex", command=run)
+    cmds.menuItem(label="Flex", command=str_flex)
 
 
-def run(*args, **kwargs):  # @UnusedVariable
-    """ Runs Flex Tool
-    """
-
-    flex = Flex()
-    flex.launch()
+str_flex = """
+from mgear.flex.flex import Flex
+flex = Flex()
+flex.launch()
+"""
